@@ -93,7 +93,7 @@ function ListPools()
     LoadPools
     foreach( $pool in $global:pools )
     {
-        Write-Output "Pool: " $pool.Name " " $pool.State
+        Write-Output ("Pool: " + $pool.Name + " " + $pool.State)
         $pool.Nodes | select Name, State, IP, OS, Size, Timestamp | ft
     }
 

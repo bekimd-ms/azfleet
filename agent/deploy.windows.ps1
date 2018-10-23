@@ -1,8 +1,22 @@
 ﻿$logFile = 'C:\deploylog.txt'
 Start-Transcript $logFile -Append -Force
 
-#Enable PSRemoting
+#Create storage space over data disks
+$poolname = "datapool"
+$vdname = "datavd"
+$disks = Get-PhysicalDisk | where BusType -eq "SAS"
+$storage = Get-StorageSubSystem
+$pool = New-StoragePool -FriendlyName $poolname -PhysicalDisks $disks -StorageSubSystemName $storage.Name
+$vdisk = New-VirtualDisk -FriendlyName $vdname `
+                -ResiliencySettingName Simple `
+                -NumberOfColumns $Disks.Count `
+                -UseMaximumSize -Interleave 65536 -StoragePoolFriendlyName $poolname
+$vdiskNumber = (Get-disk -FriendlyName $vdname).Number
+Initialize-Disk -FriendlyName $vdname -PartitionStyle GPT -PassThru
+$partition = New-Partition -UseMaximumSize -DiskNumber $vdiskNumber -DriveLetter X
+Format-Volume -DriveLetter X -FileSystem NTFS -NewFileSystemLabel "data" -AllocationUnitSize 65536
 
+#Enable PSRemoting
 $DNSName = $env:COMPUTERNAME 
 Enable-PSRemoting -Force   
 
@@ -13,13 +27,14 @@ $cmd = "winrm create winrm/config/Listener?Address=*+Transport=HTTPS @{Hostname=
 
 cmd.exe /C $cmd  
 
+#setup directories 
 $Root = "C:\"
 $Directory = "azsfleet\"
 $WorkspacePath = $Root + $Directory
 md $WorkspacePath
 
+#enable tls protocols for downloads
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-
 
 #Install fio
 $PackageName = $WorkspacePath + "fio-3.9-x64.msi"
@@ -38,21 +53,6 @@ $FioMSIArguments = @(
 )
 Start-Process "msiexec.exe" -ArgumentList $FioMSIArguments -Wait -NoNewWindow
 Remove-Item ($PackageName)
-
-#Create storage space over data disks
-$poolname = "datapool"
-$vdname = "datavd"
-$disks = Get-PhysicalDisk | where BusType -eq "SAS"
-$storage = Get-StorageSubSystem
-$pool = New-StoragePool -FriendlyName $poolname -PhysicalDisks $disks -StorageSubSystemName $storage.Name
-$vdisk = New-VirtualDisk -FriendlyName $vdname `
-                -ResiliencySettingName Simple `
-                -NumberOfColumns $Disks.Count `
-                -UseMaximumSize -Interleave 65536 -StoragePoolFriendlyName $poolname
-$vdiskNumber = (Get-disk -FriendlyName $vdname).Number
-Initialize-Disk -FriendlyName $vdname -PartitionStyle GPT -PassThru
-$partition = New-Partition -UseMaximumSize -DiskNumber $vdiskNumber -DriveLetter X
-Format-Volume -DriveLetter X -FileSystem NTFS -NewFileSystemLabel "data" -AllocationUnitSize 65536
 
 #install python 
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
@@ -94,6 +94,7 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAv
 Unregister-ScheduledTask -TaskName "azsfleet" -Confirm:0 -ErrorAction Ignore
 Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "azsfleet" -Description "azsfleet agent" -User "System" -RunLevel Highest -Settings $settings
 
+#start the agent
 Start-ScheduledTask -TaskName "azsfleet"
 
 Stop-Transcript

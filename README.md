@@ -15,9 +15,14 @@ Follow the guidance in the Azure Stack documentation:<br>
 * [Install Powershell](https://docs.microsoft.com/en-us/azure/azure-stack/azure-stack-powershell-install)<br>
 * [Connect to Azure Stack](https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-powershell-configure-user)<br>
 
-From github download all the files from the tools directory in this repository. <br>
+From github download all the files from the tools directory in this repository. You can run this script to download the tools:<br>
 
-    TODO Code to download from github directory 
+    [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
+    Invoke-WebRequest -Uri https://github.com/bekimd-ms/azsfleet/archive/master.zip -OutFile azsfleet.zip
+    Expand-Archive -Path .\azsfleet.zip  -DestinationPath .\azsfleet
+    Copy-Item -Path .\azsfleet\azsfleet-master\tools\* .\azsfleet -Recurse
+    Remove-Item -Recurse -Path .\azsfleet\azsfleet-master\
+    Remove-Item .\azsfleet.zip
 
 TODO: It is currently not possible to run the tools in disconnected mode. If there is enough interest the tools and the process can be easily modified to achieve this. <br>
 
@@ -33,29 +38,67 @@ Set the location, username and password variables<br>
 
 Create a resource group and deploy the controller VM. The template will deploy a vnet that all VMs will share.<br>
 
-     New-AzureRmResourceGroup -Name azsfleet -Location $location 
-     .\deploycontroller.ps1 -ResourceGroupName azsfleet -UserName $username -Password $password
+    New-AzureRmResourceGroup -Name azsfleet -Location $location 
+    .\deploycontroller.ps1 -ResourceGroupName azsfleet -UserName $username -Password $password
 
 Create two pools of 2 VMs. One pool contains Linux VMs and one pool contains Windows VMs.<br>
 
-     .\deploypool.ps1 -vmPool lin1 -vmCount 2 -vmOS linux   -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
-     .\deploypool.ps1 -vmPool win1 -vmCount 2 -vmOS windows -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+    .\deploypool.ps1 -vmPool lin1 -vmCount 2 -vmOS linux   -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+    .\deploypool.ps1 -vmPool win1 -vmCount 2 -vmOS windows -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
 
 After the template deployments complete check that the VMs are ready to execute jobs.<br>
 
-     .\control pool get 
+    .\control pool get 
 
 This command should return list of all VMs in each of the pool and their status.<br>
-When all the VMs are ready you can start your first job: 
 
-     .\control job start "lin1=randrw8k-lin.job win1=randrw8k-win.job"
+    Pool: lin1 READY
+
+    Name     State IP       OS    Size            Timestamp
+    ----     ----- --       --    ----            ---------
+    lin1-vm0 READY 10.0.0.6 Linux Standard_F2s_v2 10/23/2018 12:07:19 +00:00
+    lin1-vm1 READY 10.0.0.5 Linux Standard_F2s_v2 10/23/2018 12:07:25 +00:00
+
+
+    Pool: win1 READY
+
+    Name     State IP       OS      Size            Timestamp
+    ----     ----- --       --      ----            ---------
+    win1-vm0 READY 10.0.0.8 Windows Standard_F2s_v2 10/23/2018 12:07:21 +00:00
+    win1-vm1 READY 10.0.0.7 Windows Standard_F2s_v2 10/23/2018 12:07:25 +00:00
+
+When all the VMs are ready you can start your first job: <br>
+
+    .\control job start "lin1=randrw8k-lin.job win1=randrw8k-win.job"
 
 This command will start the job and output the job ID and other information.<br>
-To get the status of the job: 
 
-    .\control job get [job id copied from output of previous command]
+    Creating job: 20181023-200756
+    Copying file: randrw8k-lin.job to storage: .\\workload\\randrw8k-lin.job
+    Executing job: randrw8k-lin.job on pool: lin1
+      Starting task: EXECUTE|fio| on node: lin1-vm0
+      Starting task: EXECUTE|fio| on node: lin1-vm1
+    Copying file: randrw8k-win.job to storage: .\\workload\\randrw8k-win.job
+    Executing job: randrw8k-win.job on pool: win1
+      Starting task: EXECUTE|fio| on node: win1-vm0
+      Starting task: EXECUTE|fio| on node: win1-vm1
+      
+To get the status of the job use the job ID from the output of the previous command: <br>
 
-While the jobs are executing this will show the status of each VM. When the jobs are completed summary results for the run will be shown. <br>
+    .\control job get 20181023-200756
+
+While the jobs are executing this will show the status of each VM. <br>
+
+    Job 20181023-200756 is: EXECUTING
+
+    Node          State     LastUpdateTime             Output
+    ----          -----     --------------             ------
+    lin1_lin1-vm0 EXECUTING 10/23/2018 12:09:20 +00:00 20181023-200756lin1_lin1-vm0
+    lin1_lin1-vm1 EXECUTING 10/23/2018 12:09:26 +00:00 20181023-200756lin1_lin1-vm1
+    win1_win1-vm0 EXECUTING 10/23/2018 12:09:21 +00:00 20181023-200756win1_win1-vm0
+    win1_win1-vm1 EXECUTING 10/23/2018 12:09:25 +00:00 20181023-200756win1_win1-vm1
+
+When the jobs are completed summary results for the run will be shown. <br>
 
     Job 20181016-204004 is: COMPLETED
 
@@ -175,5 +218,25 @@ While the VM agents are still executing the job the script will output list of t
 When all VM agents have completed the job the script will output the summarized results for all the VMs. 
 
 #### Understanding the job result output 
-TBD
+The following tables describes the columnes in the job report. 
+
+| Column        | Description            |
+|:------------- |:---------------------- |
+| Node          | Name of the VM executing the job |
+| State         | Current state of the VM          |
+| RIOPSmean     | Read IOPS mean value             |
+| RMbsmean      | Read throughput mean value in MB/s |
+| RLatmean      | Read latency mean value  (us)      | 
+| RLat50p       | Read latency 50 percentile         | 
+| RLat90p       | Read latency 90 percentile         | 
+| RLat99p       | Read latency 99 percentile         | 
+| WIOPSmean     | Write IOPS mean value               |
+| WMbsmean      | Write throughput mean value in MB/s |
+| WLatmean      | Write latency mean value  (us)      |
+| WLat50p       | Write latency 50 percentile         |
+| WLat90p       | Write latency 90 percentile         |
+| WLat99p       | Write latency 99 percentile         |
+| UsrCPU        | User-mode CPU utilization           |
+| SysCPU        | System-mode CPU utilization         |
+ 
 
