@@ -27,7 +27,7 @@ if( $vmAddCount -gt 0 )
         $vmDataDiskGB =$vmZero.StorageProfile.DataDisks[0].DiskSizeGB
         $vmSize = $vmZero.HardwareProfile.VmSize
         New-AzureRmResourceGroupDeployment -Name $dn -ResourceGroupName $rg `
-                                   -TemplateFile .\md\agent.template\agent.template.$vmOS.json `
+                                   -TemplateFile .\templates\agent.template\agent.template.$vmOS.json `
                                    -StorageEndpointSuffix $storageEndpointSuffix -vmPool $vmPool `
                                    -vmIndex $index -vmCount $vmAddCount -vmSize $vmSize `
                                    -vmDataDiskCount $vmDataDisks -vmDataDiskSizeInGB $vmDataDiskGB `
