@@ -1,5 +1,5 @@
 ﻿$Root = "C:\"
-$Workspace = $Root + "IOStormplus\"
+$Workspace = $Root + "azsfleet\"
 
 #Download and unzip controller package
 
