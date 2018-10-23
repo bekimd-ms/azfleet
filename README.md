@@ -100,22 +100,22 @@ While the jobs are executing this will show the status of each VM. <br>
 
 When the jobs are completed summary results for the run will be shown. <br>
 
-    Job 20181016-204004 is: COMPLETED
+    Job 20181023-200756 is: COMPLETED
 
-        JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=libaio
+        JobParams: wl=randrw 60:40; bs=64K; iodepth=64; jobs=4; filesize=4G; runtime=120; engine=libaio
 
-    Node          State     RIOPSmean RMbsmean RLatmean RLat50p RLat90p RLat99p WIOPSmean WMbsmean WLatmean WLat50p WLat90p WLat99p UsrCPU SysCPU LastUpdateTime            Output                   
-    ----          -----     --------- -------- -------- ------- ------- ------- --------- -------- -------- ------- ------- ------- ------ ------ --------------            ------                   
-    lin1_lin1-vm0 COMPLETED      3443      110  353.726 312.476 624.951 809.501      2296       73  354.552 312.476 624.951 809.501      0      1 10/17/2018 3:45:07 +00:00 20181016-204004lin1_li...
-    lin1_lin1-vm1 COMPLETED      3445      110  353.387 312.476 624.951 809.501      2296       73  354.768 312.476 650.117 817.889      0      1 10/17/2018 3:45:10 +00:00 20181016-204004lin1_li...
+    Node          State     RIOPSmean RMbsmean RLatmean RLat50p RLat90p RLat99p WIOPSmean WMbsmean WLatmean WLat50p WLat90p WLat99p UsrCPU SysCPU
+    ----          -----     --------- -------- -------- ------- ------- ------- --------- -------- -------- ------- ------- ------- ------ ------
+    lin1_lin1-vm0 COMPLETED      4097      262   37.194   1.942 110.625 124.256      2736      175   37.815   1.909 111.673 126.353      1      4
+    lin1_lin1-vm1 COMPLETED      4100      262   37.153   1.843 110.625 124.256      2737      175   37.820   2.114 111.673 126.353      1      4
 
 
-        JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=windowsaio
+        JobParams: wl=randrw 60:40; bs=64K; iodepth=64; jobs=4; filesize=4G; runtime=120; engine=windowsaio
 
-    Node          State     RIOPSmean RMbsmean RLatmean RLat50p  RLat90p  RLat99p WIOPSmean WMbsmean WLatmean WLat50p  WLat90p  WLat99p UsrCPU SysCPU LastUpdateTime            Output               
-    ----          -----     --------- -------- -------- -------  -------  ------- --------- -------- -------- -------  -------  ------- ------ ------ --------------            ------               
-    win1_win1-vm0 COMPLETED      1696       54  724.843   4.948 2801.795 3170.894      1131       36  722.968   4.751 2801.795 3170.894      0      0 10/17/2018 3:45:24 +00:00 20181016-204004win...
-    win1_win1-vm1 COMPLETED      1657       53  739.642   4.424 2868.904 3238.003      1105       35  743.393   4.293 2902.458 3271.557      0      0 10/17/2018 3:45:24 +00:00 20181016-204004win...
+    Node          State     RIOPSmean RMbsmean RLatmean RLat50p RLat90p RLat99p WIOPSmean WMbsmean WLatmean WLat50p WLat90p WLat99p UsrCPU SysCPU
+    ----          -----     --------- -------- -------- ------- ------- ------- --------- -------- -------- ------- ------- ------- ------ ------
+    win1_win1-vm0 COMPLETED      1905      122   80.167  44.827 200.278 471.859      1270       81   81.061  45.351 202.375 476.054      0      1
+    win1_win1-vm1 COMPLETED      1939      124   78.961  52.167 202.375 387.973      1292       83   79.326  52.167 202.375 387.973      0      1
 
 
 ## Tools reference

@@ -38,7 +38,9 @@ if( -not $JobTable ) { New-AzureStorageTable -Name $JobTableName -Context $ctx}
 
 if( -not (Get-AzureStorageContainer -context $ctx -Name $workloadContainer -ErrorAction Ignore ) ){ New-AzureStorageContainer -Name $workloadContainer -Context $ctx }
 if( -not (Get-AzureStorageContainer -context $ctx -Name $outputContainer -ErrorAction Ignore ) ){ New-AzureStorageContainer -Name $outputContainer -Context $ctx }
-   
+
+if( -not (Test-Path $outputPath)) { md $outputPath }
+
 function EntityToObject ($item)
 {
     $p = new-object PSObject
