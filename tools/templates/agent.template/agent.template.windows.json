@@ -208,7 +208,7 @@
 				"autoUpgradeMinorVersion": true,
 				"settings": {
 					"fileUris": [
-						"https://raw.githubusercontent.com/bekimd-ms/azsfleet/master/agent/deploy.win.ps1"
+						"https://raw.githubusercontent.com/bekimd-ms/azsfleet/master/agent/deploy.windows.ps1"
 					],
 					"commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ','deploy.windows.ps1 ',variables('uniqueStorageAccountName'),' ',listKeys(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')), '2015-06-15').key1,' ',parameters('StorageEndpointSuffix'),' ',parameters('vmPool'),' ',variables('vmOSType'),' ',parameters('vmSize'))]"
 				}

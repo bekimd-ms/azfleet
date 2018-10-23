@@ -14,16 +14,61 @@ Follow the guidance in the Azure Stack documentation:<br>
 From github download all the files from the tools directory in this repository. <br>
 
     TODO Code to download from github directory 
-    
+
 TODO: It is currently not possible to run the tools in disconnected mode. If there is enough interest the tools and the process can be easily modified to achieve this. <br>
 
 
 ## Quick start 
-You can start with the first test with a simple sequence of powershell commands. 
- 
-     New-AzureRmResourceGroup -Name azsfleet -Location [your Azure Stack location]
-     .\deploycontroller.ps1 -ResourceGroupName azsfleet -UserName [new VM account] -Password [password]
-     .\deploypool 
+You canstart with your first test workload by following this sequence of powershell commands. <br>
+Open a PowerShell console and login into your Azure Stack environment as described in the Azure Stack documents referenced above. 
+Set the location, username and password variables<br>
+
+    $location = [your Azure Stack region name]
+    $username = [name of the admin user for the VMs]
+    $password = [password of the admin user for the VMs]
+
+Create a resource group and deploy the controller VM. The template will deploy a vnet that all VMs will share.<br>
+
+     New-AzureRmResourceGroup -Name azsfleet -Location $location 
+     .\deploycontroller.ps1 -ResourceGroupName azsfleet -UserName $username -Password $password
+
+Create two pools of 2 VMs. One pool contains Linux VMs and one pool contains Windows VMs.<br>
+
+     .\deploypool.ps1 -vmPool lin1 -vmCount 2 -vmOS linux   -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+     .\deploypool.ps1 -vmPool win1 -vmCount 2 -vmOS windows -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+
+After the template deployments complete check that the VMs are ready to execute jobs.<br>
+
+     .\control pool get 
+
+This command should return list of all VMs in each of the pool and their status.<br>
+When all the VMs are ready you can start your first job: 
+
+     .\control job start "lin1=randrw8k-lin.job win1=randrw8k-win.job"
+
+This command will start the job and output the job ID and other information.<br>
+To get the status of the job: 
+
+    .\control job get [job id copied from output of previous command]
+
+While the jobs are executing this will show the status of each VM. When the jobs are completed summary results for the run will be shown. <br>
+
+Job 20181016-204004 is: COMPLETED
+
+    JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=libaio
+
+    Node          State     RIOPSmean RMbsmean RLatmean RLat50p RLat90p RLat99p WIOPSmean WMbsmean WLatmean WLat50p WLat90p WLat99p UsrCPU SysCPU LastUpdateTime            Output                   
+    ----          -----     --------- -------- -------- ------- ------- ------- --------- -------- -------- ------- ------- ------- ------ ------ --------------            ------                   
+    lin1_lin1-vm0 COMPLETED      3443      110  353.726 312.476 624.951 809.501      2296       73  354.552 312.476 624.951 809.501      0      1 10/17/2018 3:45:07 +00:00 20181016-204004lin1_li...
+    lin1_lin1-vm1 COMPLETED      3445      110  353.387 312.476 624.951 809.501      2296       73  354.768 312.476 650.117 817.889      0      1 10/17/2018 3:45:10 +00:00 20181016-204004lin1_li...
+
+
+    JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=windowsaio
+
+    Node          State     RIOPSmean RMbsmean RLatmean RLat50p  RLat90p  RLat99p WIOPSmean WMbsmean WLatmean WLat50p  WLat90p  WLat99p UsrCPU SysCPU LastUpdateTime            Output               
+    ----          -----     --------- -------- -------- -------  -------  ------- --------- -------- -------- -------  -------  ------- ------ ------ --------------            ------               
+    win1_win1-vm0 COMPLETED      1696       54  724.843   4.948 2801.795 3170.894      1131       36  722.968   4.751 2801.795 3170.894      0      0 10/17/2018 3:45:24 +00:00 20181016-204004win...
+    win1_win1-vm1 COMPLETED      1657       53  739.642   4.424 2868.904 3238.003      1105       35  743.393   4.293 2902.458 3271.557      0      0 10/17/2018 3:45:24 +00:00 20181016-204004win...
 
 
 ## Tools reference
@@ -63,28 +108,6 @@ You can use control.ps1 script to check the status of a job.
 
 When all VM agents have completed the job the script will output the summarized results for all the VMs. 
 
-Job 20181016-204004 is: COMPLETED
-
-
-
-    JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=libaio
-
-    Node          State     RIOPSmean RMbsmean RLatmean RLat50p RLat90p RLat99p WIOPSmean WMbsmean WLatmean WLat50p WLat90p WLat99p UsrCPU SysCPU LastUpdateTime            Output                   
-    ----          -----     --------- -------- -------- ------- ------- ------- --------- -------- -------- ------- ------- ------- ------ ------ --------------            ------                   
-    lin1_lin1-vm0 COMPLETED      3443      110  353.726 312.476 624.951 809.501      2296       73  354.552 312.476 624.951 809.501      0      1 10/17/2018 3:45:07 +00:00 20181016-204004lin1_li...
-    lin1_lin1-vm1 COMPLETED      3445      110  353.387 312.476 624.951 809.501      2296       73  354.768 312.476 650.117 817.889      0      1 10/17/2018 3:45:10 +00:00 20181016-204004lin1_li...
-    lin1_lin1-vm2 COMPLETED      3443      110  353.796 312.476 624.951 784.335      2295       73  354.610 312.476 624.951 784.335      0      1 10/17/2018 3:45:14 +00:00 20181016-204004lin1_li...
-    lin1_lin1-vm3 COMPLETED      3442      110  353.485 312.476 624.951 784.335      2295       73  355.308 312.476 624.951 784.335      0      1 10/17/2018 3:45:10 +00:00 20181016-204004lin1_li...
-
-
-    JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=windowsaio
-
-    Node          State     RIOPSmean RMbsmean RLatmean RLat50p  RLat90p  RLat99p WIOPSmean WMbsmean WLatmean WLat50p  WLat90p  WLat99p UsrCPU SysCPU LastUpdateTime            Output               
-    ----          -----     --------- -------- -------- -------  -------  ------- --------- -------- -------- -------  -------  ------- ------ ------ --------------            ------               
-    win1_win1-vm0 COMPLETED      1696       54  724.843   4.948 2801.795 3170.894      1131       36  722.968   4.751 2801.795 3170.894      0      0 10/17/2018 3:45:24 +00:00 20181016-204004win...
-    win1_win1-vm1 COMPLETED      1657       53  739.642   4.424 2868.904 3238.003      1105       35  743.393   4.293 2902.458 3271.557      0      0 10/17/2018 3:45:24 +00:00 20181016-204004win...
-    win1_win1-vm2 COMPLETED      2130       68  578.090 214.958 1837.105 2332.033      1420       45  574.757 210.764 1837.105 2332.033      0      0 10/17/2018 3:45:20 +00:00 20181016-204004win...
-    win1_win1-vm3 COMPLETED      2142       69  573.672  42.205 2088.763 2399.142      1427       46  573.691  41.681 2088.763 2399.142      0      0 10/17/2018 3:45:18 +00:00 20181016-204004win...
 
 ### 4. Managing pools
 TBD
