@@ -1,0 +1,14 @@
+Account:
+     Name: storage account name
+     Key: storage account key
+     Endpoint: storage endpoint domain
+
+Node:
+    Pool: poolname
+    Name: nodename
+    IP: node ip
+    OS: node os 
+    Size: node VM size 
+    Disk: number of data disks
+    DiskSize: data disk size
+

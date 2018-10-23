@@ -1,0 +1,221 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0",
+	"parameters": {
+		"StorageEndpointSuffix": {
+            "defaultValue": "core.windows.net",
+            "type": "String"
+        },
+		"vmPool": {
+            "type": "String",
+            "metadata": {
+                "description": "Pool name."
+            }
+        },
+		"vmAdminUsername": {
+			"defaultValue": "vmadmin",
+            "type": "String"
+        },
+		"vmAdminPassword": {
+			"defaultValue": "!!!!1234abcd",
+            "type": "String"
+        },
+		"vmIndex": {
+            "defaultValue": 0,
+            "type": "Int",
+            "metadata": {
+                "description": "Start index for new VMs."
+            }
+        },        
+		"vmCount": {
+            "defaultValue": 2,
+            "type": "Int",
+            "metadata": {
+                "description": "Number of VMs to create and run IO simulation."
+            }
+        },
+		"vmOsSku": {
+            "defaultValue": "Datacenter-Core-1709-with-Containers-smalldisk",
+            "allowedValues": [
+                "2016-Datacenter",
+                "Datacenter-Core-1709-with-Containers-smalldisk"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "The Windows Server version for the VM."
+            }
+        },
+		"vmSize": {
+			"type": "string",
+			"defaultValue": "Standard_A3",
+			"metadata": {
+				"description": "VM size supported by Azure Stack."
+			}
+		},
+		"vmDataDiskSizeInGB": {
+			"type": "int",
+			"defaultValue": 4,
+			"metadata": {
+				"description": "VM IO workload target data disk size in GB."
+			}
+		},
+		"vmDataDiskCount": {
+			"type": "int",
+			"defaultValue": 1,
+			"metadata": {
+				"description": "Number of data disks per VM to perform IO on."
+			}
+		}
+	},
+	"variables": {
+        "imagePublisher": "MicrosoftWindowsServer",
+		"imageOffer": "WindowsServerSemiAnnual",
+        "addressPrefix": "10.0.0.0/16",
+        "location": "[resourceGroup().location]",
+        "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
+        "subnetPrefix": "10.0.0.0/24",
+		"storageAccountType": "Standard_LRS",
+        "uniqueStorageAccountName": "[tolower(concat('sa', resourceGroup().name))]",
+		"uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
+        "vmName": "[concat(parameters('vmPool'),'-vm')]",
+        "vmOsType": "Windows",
+        "vmOsDiskName": "[variables('vmName')]",
+        "vmDataDiskName": "[variables('vmName')]",
+        "vmNicName": "[tolower(concat(parameters('vmPool'), '-nic'))]",
+        "virtualNetworkName": "[tolower(concat('vn', resourceGroup().name))]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+        "nsgName": "[tolower(concat('ng', resourceGroup().name))]",
+        "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
+    },
+	"resources": [
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('vmNicName'),copyIndex(parameters('vmIndex')))]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('location')]",
+			"tags":{ 
+                "pool": "[parameters('vmPool')]"
+            },    
+            "copy": {
+                "name": "nicLoop",
+                "count": "[parameters('vmCount')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfigprivate",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('vmName'),copyIndex(parameters('vmIndex')))]",
+            "apiVersion": "2017-03-30",
+            "location": "[variables('location')]",
+			"tags":{ 
+                "pool": "[parameters('vmPool')]"
+            },     
+            "copy": {
+                "name": "vmLoop",
+                "count": "[parameters('vmCount')]"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('vmName'),copyIndex(parameters('vmIndex')))]",
+                    "adminUsername": "[parameters('vmAdminUsername')]",
+                    "adminPassword": "[parameters('vmAdminPassword')]",
+					"windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": true
+                    },
+                    "secrets": []
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[parameters('vmOsSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+						"osType": "[variables('vmOsType')]",
+                        "name": "[tolower(concat(variables('vmOsDiskName'),copyIndex(parameters('vmIndex')),'-osd'))]",
+                        "caching": "None",
+                        "createOption": "FromImage",
+						"diskSizeGB": 128
+                    },
+                    "copy": [
+						{
+							"name": "dataDisks",
+							"count": "[parameters('vmDataDiskCount')]",
+							"input": {
+                                "name": "[tolower(concat(variables('vmDataDiskName'),copyIndex(parameters('vmIndex')),'-dd',copyIndex('dataDisks')))]",
+								"diskSizeGB": "[parameters('vmDataDiskSizeInGB')]",
+								"lun": "[copyIndex('dataDisks')]",
+								"createOption": "Empty",
+                                "caching": "None"  
+							}
+						}
+					]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('vmNicName'),copyIndex(parameters('vmIndex'))))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/',variables('vmNicName'),copyIndex(parameters('vmIndex')))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('vmName'),copyIndex(parameters('vmIndex')),'/AzSFleetExtension')]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('location')]",
+            "tags":{ 
+                "pool": "[parameters('vmPool')]"
+            },            
+            "copy": {
+                "name": "vmLoop",
+                "count": "[parameters('vmCount')]"
+            },
+            "properties": {
+                "publisher": "Microsoft.Compute",
+				"type": "CustomScriptExtension",
+				"typeHandlerVersion": "1.9",
+				"autoUpgradeMinorVersion": true,
+				"settings": {
+					"fileUris": [
+						"https://raw.githubusercontent.com/bekimd-ms/azsfleet/master/agent/deploy.win.ps1"
+					],
+					"commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ','deploy.windows.ps1 ',variables('uniqueStorageAccountName'),' ',listKeys(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')), '2015-06-15').key1,' ',parameters('StorageEndpointSuffix'),' ',parameters('vmPool'),' ',variables('vmOSType'),' ',parameters('vmSize'))]"
+				}
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/',variables('vmName'),copyIndex(parameters('vmIndex')))]"
+            ]
+        }
+    ]
+}
