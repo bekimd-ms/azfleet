@@ -6,7 +6,7 @@ It is implemented in a set of Powershell, Bash, and Python scripts as well as AR
 
 * [Get the tools](#get-the-tools)
 * [Quick start](#quick-start)
-* [Tool reference](#tool-reference)
+* [Tools reference](#tools-reference)
 
 ## Get the tools
 You only need a client machine that can connect to your Azure Stack deployment. Ensure that you have installed powershell for Azure Stack and can connect to the Azure Stack instance. 
@@ -57,9 +57,9 @@ To get the status of the job:
 
 While the jobs are executing this will show the status of each VM. When the jobs are completed summary results for the run will be shown. <br>
 
-Job 20181016-204004 is: COMPLETED
+    Job 20181016-204004 is: COMPLETED
 
-    JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=libaio
+        JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=libaio
 
     Node          State     RIOPSmean RMbsmean RLatmean RLat50p RLat90p RLat99p WIOPSmean WMbsmean WLatmean WLat50p WLat90p WLat99p UsrCPU SysCPU LastUpdateTime            Output                   
     ----          -----     --------- -------- -------- ------- ------- ------- --------- -------- -------- ------- ------- ------- ------ ------ --------------            ------                   
@@ -67,7 +67,7 @@ Job 20181016-204004 is: COMPLETED
     lin1_lin1-vm1 COMPLETED      3445      110  353.387 312.476 624.951 809.501      2296       73  354.768 312.476 650.117 817.889      0      1 10/17/2018 3:45:10 +00:00 20181016-204004lin1_li...
 
 
-    JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=windowsaio
+        JobParams: wl=randrw 60:40; bs=32K; iodepth=128; jobs=16; filesize=4G; runtime=300; engine=windowsaio
 
     Node          State     RIOPSmean RMbsmean RLatmean RLat50p  RLat90p  RLat99p WIOPSmean WMbsmean WLatmean WLat50p  WLat90p  WLat99p UsrCPU SysCPU LastUpdateTime            Output               
     ----          -----     --------- -------- -------- -------  -------  ------- --------- -------- -------- -------  -------  ------- ------ ------ --------------            ------               
@@ -75,9 +75,7 @@ Job 20181016-204004 is: COMPLETED
     win1_win1-vm1 COMPLETED      1657       53  739.642   4.424 2868.904 3238.003      1105       35  743.393   4.293 2902.458 3271.557      0      0 10/17/2018 3:45:24 +00:00 20181016-204004win...
 
 
-## Tool reference
-
-
+## Tools reference
 ### Controller VM  
 Run the deploycontroller.ps1 script to deploy the virtual network, controller and other shared objects for all the VMs that you will use for workload test. 
 
@@ -100,7 +98,7 @@ Pools are sets of VMs with identical configuration. All the VMs in a pool have t
 You can increase or decrease the size of the pool. You can stop and restart all the VMs in the pool.  
 When executing a workload job you target a pool. All the VMs in the pool will execute the same job with the same parameters. 
 
-##### Deploy a new pool 
+#### Deploy a new pool 
 To deploy a new pool run the deploypool.ps1 script. 
 
     .\deploypool.ps1 -vmPool pool1
@@ -113,12 +111,12 @@ To deploy a new pool run the deploypool.ps1 script.
                      -vmAdminPassword $password
 
 
-##### Get pool info 
+#### Get pool info 
 To get the information about the VMs in the pool run the getpool.ps1 script. 
 
     .\getpool.ps1 -vmPool pool1
 
-##### Stop and start pool
+#### Stop and start pool
 To stop(deallocate) all the VMs in a pool run the stoppool.ps1 script. 
 
     .\stoppool.ps1 -vmPool pool1
@@ -127,7 +125,7 @@ To start all the VMs in a pool run the startpool.ps1 script.
     
     .\stoppool.ps1 -vmPool pool1
 
-##### Scale a pool 
+#### Scale a pool 
 You can scale the pool with the scalepool.ps1 script.<br>
 To increase the size of the pool: 
 
@@ -137,7 +135,7 @@ To decrease the size of the pool
 
     .\scalepool.ps1 -vmPool pool1 -vmDiff -5 -vmAdminUserName $username -vmAdminPassword $password
 
-##### Remove a pool 
+#### Remove a pool 
 To remove all the VMs in the pool run the removepool.ps1 script. 
 
     .\removepool.ps1 -vmPool pool1 
