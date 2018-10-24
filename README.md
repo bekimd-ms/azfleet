@@ -48,7 +48,7 @@ Create two pools of 2 VMs. One pool contains Linux VMs and one pool contains Win
 
 After the template deployments complete check that the VMs are ready to execute jobs.<br>
 
-    .\control pool get 
+    .\control.ps1 pool get 
 
 This command should return list of all VMs in each of the pool and their status.<br>
 
