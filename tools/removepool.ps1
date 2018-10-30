@@ -12,11 +12,14 @@ $acct = $config.storageaccount
 $key = Get-AzureRmStorageAccountKey -ResourceGroupName $rg -Name $acct
 $ctx = New-AzureStorageContext -StorageAccountName $acct -StorageAccountKey $key[0].Value
 $context = Get-AzureRMContext;
+Enable-AzureRmContextAutosave -Scope CurrentUser
 
-$vms = get-azurermvm | where {$_.Tags.pool -eq $vmPool} | where ResourceGroupName -eq $rg | sort Name 
+$vms = get-azurermvm -ResourceGroupName $rg | where {$_.Tags.pool -eq $vmPool} | sort Name 
 
 $script = {
     Param( $rg, $vm, $context )
+    Import-Module AzureRM -RequiredVersion 2.3.0
+    Select-AzureRMContext -Name $context.Name
     Write-Output $context
     Write-Output $rg, $vm.Name
     $vmname = $vm.Name

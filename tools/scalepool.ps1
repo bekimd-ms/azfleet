@@ -16,7 +16,7 @@ $storageEndpointSuffix= ((Get-AzureRmContext).Environment | Get-AzureRmEnvironme
 if( $vmAddCount -gt 0 )
 {
     Write-Output "Scaling pool $vmPool up with $vmAddCount new nodes." 
-    $vms = get-azurermvm | where {$_.Tags.pool -eq $vmPool} | where ResourceGroupName -eq $rg
+    $vms = get-azurermvm -ResourceGroupName $rg | where {$_.Tags.pool -eq $vmPool} 
     $index = $vms.Count
     
     if( $index -gt 0 )
@@ -58,3 +58,5 @@ if( $vmAddCount -lt 0 )
     }
 
 }
+
+get-azurermvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} 
