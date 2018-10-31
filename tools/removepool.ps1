@@ -99,8 +99,7 @@ $disks = Get-AzureRmDisk -ResourceGroupName $rg | where Name -like ($vmPool + "*
 $disks | Remove-AzureRmDisk -force -verbose       
 
 #cleanup orphaned storage containers 
-$vms | %
-    { 
+$vms | %{ 
         $cont = Get-AzureStorageContainer -Context $ctx -Prefix ('bootdiagnostics-'+ ($_.Name -replace "-"))
         $cont | remove-azurestoragecontainer -Force
     }
