@@ -17,33 +17,37 @@ Enable-AzureRmContextAutosave -Scope CurrentUser
 $vms = get-azurermvm -ResourceGroupName $rg | where {$_.Tags.pool -eq $vmPool} | sort Name 
 
 $script = {
-    Param( $rg, $vm, $context )
+    Param( $rg, $vmname, $context )
     Import-Module AzureRM -RequiredVersion 2.3.0
     Select-AzureRMContext -Name $context.Name
-    Write-Output $context
-    Write-Output $rg, $vm.Name
-    $vmname = $vm.Name
-    Write-Output $vm.NetworkProfile.NetworkInterfaces.Count
-    $vm.NetworkProfile.NetworkInterfaces[0].id -match "Interfaces/(.*)"
-    $nicname = $matches[1]
-    Write-Output $rg, $vmname, $nicname
+    $vm = Get-AzureRMVM -ResourceGroupName $rg -Name $vmname
+
+    Write-Output "Removing VM $($vm.Name)"
+    Remove-AzureRmVm -Name $vmName -ResourceGroupName $rg -force -verbose
+
+    if( $vm.NetworkProfile.NetworkInterfaces.Count -gt 0 )
+    {
+        $vm.NetworkProfile.NetworkInterfaces[0].id -match "Interfaces/(.*)"
+        $nicname = $matches[1]
+        Write-Output "Removing network interface $nicname"
+        Remove-AzureRmNetworkInterface -Name $nicname -ResourceGroupName $rg -force -verbose        
+    }
+
+    
     $osdiskname = $vm.StorageProfile.OSDisk.Name
+    Write-Output "Removing OS disk $osdiskname"
+    Remove-AzureRmDisk -Name $osdiskname -ResourceGroupName $rg -force -verbose
+    
     $datadisknames = $vm.StorageProfile.DataDisks.Name
-    Write-Output "Removing VM"
-    Remove-AzureRmVm -Name $vmName -ResourceGroupName $rg -AzureRmContext $context  -force -verbose
-    Write-Output "Removing NIC"
-    Remove-AzureRmNetworkInterface -Name $nicname -ResourceGroupName $rg -AzureRmContext $context -force -verbose
-    Write-Output "Removing OS Disk"
-    Remove-AzureRmDisk -Name $osdiskname -ResourceGroupName $rg -AzureRmContext $context -force -verbose
-    Write-Output "Removing Data Disk"
-    $datadisknames | %{ Remove-AzureRmDisk -Name $_ -ResourceGroupName $rg -AzureRmContext $context -force -verbose }
+    Write-Output "Removing data disks $($datadisknames.Count)"
+    $datadisknames | %{ Remove-AzureRmDisk -Name $_ -ResourceGroupName $rg -force -verbose }
 }
 
 $jobs = @()
 
 Write-Output "Starting VM removal jobs"
 $vms | %{ 
-    $job = Start-Job -Name $_.Name $script -ArgumentList $rg, $_, $context 
+    $job = Start-Job -Name $_.Name $script -ArgumentList $rg, $_.Name, $context 
     Write-Output "($_.Name) being removed in background job $($job.Name) ID $($job.Id)"   
     $jobs += @($job)
 }
@@ -62,7 +66,15 @@ while($running -and $timeElapsed -le $Timeout)
 		if($_.State -eq 'Running')
 		{
 			$running = $true
-		}
+        }
+        else 
+        {
+            if( -not $completedjobs.Contains( $_.Name) ) 
+            {
+                Write-Output "   $($_.Name) ID $($_.Id) completed with status $($_.State)"
+                $completedjobs += @( $_.Name )
+            }
+        }        
     }
     if( $running) {
 	    Start-Sleep -Seconds $sleepTime
@@ -77,7 +89,18 @@ foreach( $job in $jobs )
     Write-Output ""
 }
 
-$vms | %{ 
-    $cont = Get-AzureStorageContainer -Context $ctx -Prefix ('bootdiagnostics-'+ ($_.Name -replace "-"))
-    $cont | remove-azurestoragecontainer -Force
-}
+#cleanup orphaned network cards 
+$nics = Get-AzureRmNetworkInterface -ResourceGroupName $rg | where Name -like ($vmPool + "*")
+$nics | Remove-AzureRmNetworkInterface -force -verbose       
+
+#cleanup orphaned disks 
+$disks = Get-AzureRmDisk -ResourceGroupName $rg | where Name -like ($vmPool + "*")
+$nics | Remove-AzureRmDisk -force -verbose       
+
+#cleanup orphaned storage containers 
+$vms | %
+    { 
+        $cont = Get-AzureStorageContainer -Context $ctx -Prefix ('bootdiagnostics-'+ ($_.Name -replace "-"))
+        $cont | remove-azurestoragecontainer -Force
+    }
+
