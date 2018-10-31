@@ -101,6 +101,21 @@ function ListPools()
 
 }
 
+function CleanPools( $Params )
+{
+    Write-Output "Getting all pool node info"
+    $query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
+    $data = $NodeTable.CloudTable.ExecuteQuery($query)
+    $groups = $data | group PartitionKey 
+    
+    foreach( $group in $groups.Group )
+    {
+        $batch = New-Object "Microsoft.WindowsAzure.Storage.Table.TableBatchOperation"
+        $group | %{ $batch.Delete( $_ ) } 
+        $NodeTable.CloudTable.ExecuteBatch( $batch )
+    }
+}
+
 function StartJob( $Params )
 {
     #$params format:
@@ -348,6 +363,16 @@ switch( $object ){
                 }
                 else{
                     GetPool $Params
+                }
+                break
+            }
+            "clean"{
+                if( $Params -eq "" ){
+                    CleanPools
+                }
+                else{
+                    #not yet implemented cleaning a single pool
+                    CleanPools #$Params
                 }
                 break
             }

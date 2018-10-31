@@ -57,6 +57,7 @@ $sleepTime = 30
 $timeElapsed = 0
 $running = $true
 $timeout = 3600
+$completedjobs = @()
 
 while($running -and $timeElapsed -le $Timeout)
 {
@@ -95,7 +96,7 @@ $nics | Remove-AzureRmNetworkInterface -force -verbose
 
 #cleanup orphaned disks 
 $disks = Get-AzureRmDisk -ResourceGroupName $rg | where Name -like ($vmPool + "*")
-$nics | Remove-AzureRmDisk -force -verbose       
+$disks | Remove-AzureRmDisk -force -verbose       
 
 #cleanup orphaned storage containers 
 $vms | %
