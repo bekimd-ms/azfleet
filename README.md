@@ -20,7 +20,7 @@ From github download all the files from the tools directory in this repository. 
     [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
     Invoke-WebRequest -Uri https://github.com/bekimd-ms/azsfleet/archive/master.zip -OutFile azsfleet.zip
     Expand-Archive -Path .\azsfleet.zip  -DestinationPath .\azsfleet
-    Copy-Item -Path .\azsfleet\azsfleet-master\tools\* .\azsfleet -Recurse
+    Copy-Item -Path .\azsfleet\azsfleet-master\tools\* .\azsfleet -Recurse -Force
     Remove-Item -Recurse -Path .\azsfleet\azsfleet-master\
     Remove-Item .\azsfleet.zip
 
