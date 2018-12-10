@@ -29,6 +29,13 @@ cd /home && ./fio-3.5/configure
 cd /home/fio-3.5 && make
 cd /home/fio-3.5 && make install
 
+#install diskspd
+cd /home && wget https://github.com/Microsoft/diskspd-for-linux/archive/master.zip
+cd /home && unzip master.zip -d diskspd
+cd /home && ./diskspd/diskspd-for-linux-master
+cd /home/diskspd/diskspd-for-linux-master && make
+cd /home/diskspd/diskspd-for-linux-master && make install
+
 #configure python libs
 apt-get install python3-pip -y 
 pip3 install azure

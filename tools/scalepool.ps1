@@ -59,4 +59,4 @@ if( $vmAddCount -lt 0 )
 
 }
 
-get-azurermvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} 
+get-azurermvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} | ft

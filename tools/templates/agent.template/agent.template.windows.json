@@ -74,7 +74,8 @@
         "location": "[resourceGroup().location]",
         "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
         "subnetPrefix": "10.0.0.0/24",
-		"storageAccountType": "Standard_LRS",
+        "storageAccountType": "Standard_LRS",
+        "diskType": "Premium_LRS",
         "uniqueStorageAccountName": "[tolower(concat('sa', resourceGroup().name))]",
 		"uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
         "vmName": "[concat(parameters('vmPool'),'-vm')]",
@@ -155,7 +156,9 @@
                         "name": "[tolower(concat(variables('vmOsDiskName'),copyIndex(parameters('vmIndex')),'-osd'))]",
                         "caching": "None",
                         "createOption": "FromImage",
-						"diskSizeGB": 128
+                        "managedDisk": {
+                            "storageAccountType": "[variables('diskType')]"
+                        }                                                 
                     },
                     "copy": [
 						{
@@ -166,7 +169,10 @@
 								"diskSizeGB": "[parameters('vmDataDiskSizeInGB')]",
 								"lun": "[copyIndex('dataDisks')]",
 								"createOption": "Empty",
-                                "caching": "None"  
+                                "caching": "None",
+                                "managedDisk": {
+                                    "storageAccountType": "[variables('diskType')]"
+                                }                                 
 							}
 						}
 					]

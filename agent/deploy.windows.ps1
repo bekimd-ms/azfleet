@@ -54,6 +54,12 @@ $FioMSIArguments = @(
 Start-Process "msiexec.exe" -ArgumentList $FioMSIArguments -Wait -NoNewWindow
 Remove-Item ($PackageName)
 
+#install diskspd
+$PackageName = $WorkspacePath + "diskspd.zip"
+$PackageUrl  = "https://gallery.technet.microsoft.com/DiskSpd-A-Robust-Storage-6ef84e62/file/199535/2/DiskSpd-2.0.21a.zip"
+Invoke-WebRequest -Uri $PackageUrl -OutFile $PackageName
+Expand-Archive .\diskspd.zip
+
 #install python 
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 choco install python -y

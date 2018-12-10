@@ -1,5 +1,6 @@
 ﻿$Root = "C:\"
-$Workspace = $Root + "azsfleet\"
+$WorkspacePath = $Root + "azsfleet\"
+md $WorkspacePath
 
 #Download and unzip controller package
 
@@ -7,7 +8,7 @@ $PackageName = "RemoteConsole.ps1"
 $PackageUrl = "https://raw.githubusercontent.com/bekimd-ms/AzureStack/master/RemoteConsole.ps1"
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
 
-Invoke-WebRequest -Uri $PackageUrl -OutFile ($Workspace + $PackageName)
+Invoke-WebRequest -Uri $PackageUrl -OutFile ($WorkspacePath + $PackageName)
 
 # Install AzureRM 
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
