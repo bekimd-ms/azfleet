@@ -42,14 +42,14 @@ $PackageUrl  = "https://bluestop.org/files/fio/releases/fio-3.9-x64.msi"
 
 Invoke-WebRequest -Uri $PackageUrl -OutFile $PackageName
 $DataStamp = get-date -Format yyyyMMdd
-$logFile = '{0}-{1}.log' -f $PackageName, $DataStamp
+$fiologFile = '{0}-{1}.log' -f $PackageName, $DataStamp
 $FioMSIArguments = @(
     "/i"
     ('"{0}"' -f $PackageName)
     "/qn"
     "/norestart"
     "/L*v"
-    $logFile
+    $fiologFile
 )
 Start-Process "msiexec.exe" -ArgumentList $FioMSIArguments -Wait -NoNewWindow
 Remove-Item ($PackageName)
@@ -62,6 +62,7 @@ Expand-Archive $PackageName ($WorkspacePath + "diskspd")
 
 #install python 
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
 choco install python -y
 
 #configure python libs
