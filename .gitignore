@@ -1,0 +1,8 @@
+*.obj
+*.exe
+*.vscode
+*.log
+*.o
+*.exe
+*.vs
+/tools/output/*
