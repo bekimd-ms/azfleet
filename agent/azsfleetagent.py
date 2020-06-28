@@ -1,4 +1,4 @@
-from azure.storage.table import TableService
+from azure.cosmosdb.table import TableService
 from azure.storage.table import Entity
 from azure.storage.blob  import BlockBlobService
 import datetime, time
