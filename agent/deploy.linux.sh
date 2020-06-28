@@ -38,8 +38,8 @@ cd /home/diskspd/diskspd-for-linux-master && make install
 
 #configure python libs
 apt-get install python3-pip -y 
-pip3 install azure
-pip3 install azure-storage 
+pip3 install azure-storage-blob==2.1.0
+pip3 install azure-cosmosdb-table==1.0.6  
 pip3 install pyyaml
 
 #install azsfleet agent
