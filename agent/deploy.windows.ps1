@@ -63,7 +63,7 @@ Expand-Archive $PackageName ($WorkspacePath + "diskspd")
 #install python 
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
-choco install python -y
+choco install python -y --version 3.7.7
 
 #configure python libs
 C:\Python37\Scripts\pip install azure 

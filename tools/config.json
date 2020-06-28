@@ -1,4 +1,4 @@
 {
-    resourcegroup: "xfleet",
-    storageaccount: "saxfleet"
+    resourcegroup: "azsfleet",
+    storageaccount: "saazsfleet"
 }

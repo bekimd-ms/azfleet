@@ -68,8 +68,8 @@
 	},
 	"variables": {
         "imagePublisher": "MicrosoftWindowsServer",
-		"imageOffer": "WindowsServerSemiAnnual",
-		"imageSKU": "Datacenter-Core-1709-with-Containers-smalldisk",
+		"imageOffer": "WindowsServer",
+		"imageSKU": "2019-Datacenter",
         "addressPrefix": "10.0.0.0/16",
         "location": "[resourceGroup().location]",
         "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
