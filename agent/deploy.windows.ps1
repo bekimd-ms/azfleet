@@ -66,8 +66,8 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 choco install python -y --version 3.7.7
 
 #configure python libs
-C:\Python37\Scripts\pip install azure-storage-blob==2.1.0
-C:\Python37\Scripts\pip install azure-cosmosdb-table==1.0.6 
+C:\Python37\Scripts\pip install azure-storage-blob==1.1.0
+C:\Python37\Scripts\pip install azure-cosmosdb-table==1.0.0 
 C:\Python37\Scripts\pip install pyyaml
 
 #install azsfleet agent
