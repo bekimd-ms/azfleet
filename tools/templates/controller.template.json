@@ -1,13 +1,11 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0",
 	"parameters": {
 		"vmAdminUsername": {
-			"defaultValue": "vmadmin",
             "type": "String"
         },
 		"vmAdminPassword": {
-			"defaultValue": "!!!!1234abcd",
             "type": "String"
         },
 		"storageEndpointSuffix": {
@@ -74,7 +72,8 @@
         "location": "[resourceGroup().location]",
         "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
         "subnetPrefix": "10.0.0.0/24",
-		"storageAccountType": "Standard_LRS",
+		"storageSkuName": "Standard_LRS",
+		"storageSkuTier": "Standard",
         "uniqueStorageAccountName": "[tolower(concat('sa', resourceGroup().name))]",
         "uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
         "vmName": "['controller']",
@@ -90,39 +89,40 @@
     },
 	"resources": [
 		{
-			"apiVersion": "2015-06-15",
+			"apiVersion": "2019-06-01",
 			"type": "Microsoft.Storage/storageAccounts",
 			"name": "[tolower(variables('uniqueStorageAccountName'))]",
 			"location": "[variables('location')]",
-			"properties": {
-				"accountType": "[variables('storageAccountType')]"
+			"sku": {
+				"name": "[variables('storageSkuName')]",
+				"tier": "[variables('storageSkuTier')]"
 			}
 		},
 		{
-			"apiVersion": "2015-06-15",
+			"apiVersion": "2020-06-01",
 			"type": "Microsoft.Network/networkSecurityGroups",
 			"name": "[variables('nsgName')]",
 			"location": "[variables('location')]",
 			"properties": {
 				"securityRules": [
 					{
-						"name": "nsgsrule",
-						"properties": {
-							"protocol": "*",
-							"sourcePortRange": "*",
-							"destinationPortRange": "*",
-							"sourceAddressPrefix": "*",
-							"destinationAddressPrefix": "*",
-							"access": "Allow",
-							"priority": 101,
-							"direction": "Inbound"
-						}
+					  "name": "default-allow-3389",
+					  "properties": {
+						"priority": 1000,
+						"access": "Allow",
+						"direction": "Inbound",
+						"destinationPortRange": "3389",
+						"protocol": "Tcp",
+						"sourcePortRange": "*",
+						"sourceAddressPrefix": "*",
+						"destinationAddressPrefix": "*"
+					  }
 					}
-				]
+				  ]
 			}
 		},
 		{
-			"apiVersion": "2015-06-15",
+			"apiVersion": "2020-06-01",
 			"type": "Microsoft.Network/virtualNetworks",
 			"name": "[variables('virtualNetworkName')]",
 			"location": "[variables('location')]",
@@ -149,7 +149,7 @@
 		{
 			"type": "Microsoft.Network/publicIPAddresses",
 			"name": "[variables('publicIPAddressName')]",
-			"apiVersion": "2015-05-01-preview",
+			"apiVersion": "2020-06-01",
 			"location": "[resourceGroup().location]",
 			"properties": {
 				"publicIPAllocationMethod": "Dynamic",
@@ -164,7 +164,7 @@
         {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[variables('vmNicName')]",
-            "apiVersion": "2015-06-15",
+            "apiVersion": "2020-06-01",
             "location": "[variables('location')]",
             "properties": {
                 "ipConfigurations": [
@@ -190,7 +190,7 @@
         {
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('vmName')]",
-            "apiVersion": "2017-03-30",
+            "apiVersion": "2020-06-01",
             "location": "[variables('location')]",
             "properties": {
                 "hardwareProfile": {
@@ -243,7 +243,7 @@
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "name": "[concat(variables('vmName'),'/AzSFleetExtension')]",
-            "apiVersion": "2015-06-15",
+            "apiVersion": "2020-06-01",
             "location": "[variables('location')]",
             "properties": {
                 "publisher": "Microsoft.Compute",

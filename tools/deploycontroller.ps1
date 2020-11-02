@@ -4,10 +4,12 @@ Param(
     [string] $Password
 )
 
-$storageEndpointSuffix= ((Get-AzureRmContext).Environment | Get-AzureRmEnvironment).StorageEndpointSuffix
+$storageEndpointSuffix= ((Get-AzContext).Environment | Get-AzEnvironment).StorageEndpointSuffix
 
-New-AzureRmResourceGroupDeployment -Name "controllerdeployment" -ResourceGroupName $ResourceGroupName `
-                                   -TemplateFile .\templates\controller.template.json `
-                                   -StorageEndpointSuffix $storageEndpointSuffix `
-                                   -vmAdminUserName $UserName -vmAdminPassword $Password `
-                                   -verbose
+New-AzResourceGroupDeployment -Name "controllerdeployment" -ResourceGroupName $ResourceGroupName `
+                              -TemplateFile .\templates\controller.template.json `
+                              -StorageEndpointSuffix $storageEndpointSuffix `
+                              -vmAdminUserName $UserName -vmAdminPassword $Password `
+                              -verbose
+
+                              

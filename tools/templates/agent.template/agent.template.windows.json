@@ -13,11 +13,9 @@
             }
         },
 		"vmAdminUsername": {
-			"defaultValue": "vmadmin",
             "type": "String"
         },
 		"vmAdminPassword": {
-			"defaultValue": "!!!!1234abcd",
             "type": "String"
         },
 		"vmIndex": {

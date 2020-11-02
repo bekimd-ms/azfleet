@@ -1,6 +1,6 @@
-# AzSFleet
+# AzFleet
 
-AzSFleet (**Az**ure **S**tack **Fleet**) is a set of tools that enables you to run IO tests on a fleet of Linux or Windows VMs on Azure Stack. 
+AzFleet (**Az**ure **Fleet**) is a set of tools that enables you to run IO tests on a fleet of Linux or Windows VMs on Azure. 
 It consists of a set of PowerShell scripts that you can use to create pools of VMs and execute jobs that simulate IO workloads. 
 It is implemented in a set of Powershell, Bash, and Python scripts as well as ARM templates.
 
@@ -9,20 +9,20 @@ It is implemented in a set of Powershell, Bash, and Python scripts as well as AR
 * [Tools reference](#tools-reference)
 
 ## Get the tools
-You only need a client machine that can connect to your Azure Stack deployment. Ensure that you have installed powershell for Azure Stack and can connect to the Azure Stack instance. 
-Follow the guidance in the Azure Stack documentation:<br>
+You only need a client machine that can connect to your Azure environment. Ensure that you have installed powershell for Azure and can connect to the Azure cloud. 
+Follow the guidance in the Azure documentation:<br>
 
-* [Install Powershell](https://docs.microsoft.com/en-us/azure/azure-stack/azure-stack-powershell-install)<br>
-* [Connect to Azure Stack](https://docs.microsoft.com/en-us/azure/azure-stack/user/azure-stack-powershell-configure-user)<br>
+* [Install Powershell](https://docs.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-5.0.0)<br>
+* [Connect to Azure](https://docs.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-5.0.0#sign-in)<br>
 
 From github download all the files from the tools directory in this repository. You can run this script to download the tools:<br>
 
     [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-    Invoke-WebRequest -Uri https://github.com/bekimd-ms/azsfleet/archive/master.zip -OutFile azsfleet.zip
-    Expand-Archive -Path .\azsfleet.zip  -DestinationPath .\azsfleet
-    Copy-Item -Path .\azsfleet\azsfleet-master\tools\* .\azsfleet -Recurse -Force
-    Remove-Item -Recurse -Path .\azsfleet\azsfleet-master\
-    Remove-Item .\azsfleet.zip
+    Invoke-WebRequest -Uri https://github.com/bekimd-ms/azfleet/archive/master.zip -OutFile azfleet.zip
+    Expand-Archive -Path .\azfleet.zip  -DestinationPath .\azfleet
+    Copy-Item -Path .\azfleet\azfleet-master\tools\* .\azfleet -Recurse -Force
+    Remove-Item -Recurse -Path .\azfleet\azfleet-master\
+    Remove-Item .\azfleet.zip
 
 TODO: It is currently not possible to run the tools in disconnected mode. If there is enough interest the tools and the process can be easily modified to achieve this. <br>
 
@@ -122,7 +122,7 @@ When the jobs are completed summary results for the run will be shown. <br>
 ### Controller VM  
 Run the deploycontroller.ps1 script to deploy the virtual network, controller and other shared objects for all the VMs that you will use for workload test. 
 
-    .\deploycontroller.ps1 -ResourceGroupName azsfleet -UserName $username -Password $password
+    .\deploycontroller.ps1 -ResourceGroupName azfleet -UserName $username -Password $password
 
 You only need to run this once for a new resource group. The controller doesn't need to run in order to execute workload tests.
 It is only used if you need to access the individual test VMs because they are only provisioned with private IP addresses.
@@ -132,8 +132,8 @@ Save the resource group and the name of the storage account used for test execut
 The format for the config.json file is: 
 
     {
-        resourcegroup: "azsfleet",
-        storageaccount: "saazsfleet"
+        resourcegroup: "azfleet",
+        storageaccount: "saazfleet"
     }
 
 ### Pools
@@ -184,7 +184,7 @@ To remove all the VMs in the pool run the removepool.ps1 script.
     .\removepool.ps1 -vmPool pool1 
 
 ### Jobs
-AzSFleet uses fio to run tests on both windows and linux VMs. 
+AzFleet uses fio to run tests on both windows and linux VMs. 
 The tool uses the fio job definitions decsribed here  (e.g.https://github.com/axboe/fio/tree/master/examples ). <br>
 Two default jobs for windows and linux are available in the workloads directory. You can create additional job definitions that must be stored in the workloads directory.  
 To execute and control jobs use the control.ps1 script. 

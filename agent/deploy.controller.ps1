@@ -13,8 +13,7 @@ Invoke-WebRequest -Uri $PackageUrl -OutFile ($WorkspacePath + $PackageName)
 # Install AzureRM 
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
-Install-Module -Name AzureRm.BootStrapper -Force  
-Use-AzureRmProfile -Profile 2018-03-01-hybrid -Force
+Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
 
 #Install SSH client
 Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
