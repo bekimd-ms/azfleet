@@ -38,7 +38,7 @@ Set the location, username and password variables<br>
 
 Create a resource group and deploy the controller VM. The template will deploy a vnet that all VMs will share.<br>
 
-    New-AzureRmResourceGroup -Name azsfleet -Location $location 
+    New-AzResourceGroup -Name azfleet -Location $location 
     .\deploycontroller.ps1 -ResourceGroupName azsfleet -UserName $username -Password $password
 
 Create two pools of 2 VMs. One pool contains Linux VMs and one pool contains Windows VMs.<br>
