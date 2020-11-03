@@ -1,21 +1,34 @@
 ﻿apt-get update
 apt-get upgrade -y
 
-#create one volume striped over all data disks
-disks=($(lsblk -l -p -o NAME | grep "sd" | grep -v "sda" | grep -v "sdb"))
+#get the data disk configuration
+#disks=($(lsblk -l -p -o NAME | grep "sd" | grep -v "sda" | grep -v "sdb"))
+disks=($(find /dev/disk/azure/scsi1/* -exec readlink -f {} \;))
 diskscnt=${#disks[*]}
 disksizes=($(lsblk -l -p -o size ${disks[0]}))
 disksize=${disksizes[1]}
 
-for disk in ${disks[*]}
-do
-       echo -e "n\np\n1\n\n\nt\nfd\nw" | fdisk $disk
-done
-pdisks=($(lsblk -l -p -o NAME | grep "sd" | grep -v "sda" | grep -v "sdb" | grep 1))
-mdadm --create /dev/md0 --level 0 --raid-devices ${#pdisks[*]} ${pdisks[*]} --force
-mkfs -t ext4 /dev/md0
+if [ "$diskcnt" = "1"]; then
+       #single disk: format the disk
+       disk = ${disks[0]}
+       parted $disk --script mklabel gpt mkpart xfspart xfs 0% 100%
+       $diskpart = "$disk"1
+       mkfs.xfs $diskpart
+       echo -e "$diskpart""\t/data\xfs\tdefaults,nofail\t1\t2" >> /etc/fstab
+
+else
+       #multiple disks: create one volume striped over all data disks
+       for disk in ${disks[*]}
+       do
+              echo -e "n\np\n1\n\n\nt\nfd\nw" | fdisk $disk
+       done
+       #pdisks=($(find /dev/disk/azure/scsi1/*-part* -exec readlink -f {} \;))
+       mdadm --create /dev/md0 --level 0 --raid-devices ${#pdisks[*]} ${pdisks[*]} --force
+       mkfs -t ext4 /dev/md0
+       echo -e "/dev/md0\t/data\text4\tdefaults\t0\t2" >> /etc/fstab
+fi
+
 mkdir /data
-echo -e "/dev/md0\t/data\text4\tdefaults\t0\t2" >> /etc/fstab
 mount -a
 chmod -R 777 /data
 
@@ -29,6 +42,7 @@ cd /home && ./fio-3.5/configure
 cd /home/fio-3.5 && make
 cd /home/fio-3.5 && make install
 
+#TODO: Must install unzip first
 #install diskspd
 cd /home && wget https://github.com/Microsoft/diskspd-for-linux/archive/master.zip
 cd /home && unzip master.zip -d diskspd
@@ -71,7 +85,7 @@ python3 ./azfleetagent.py config $AccName $AccKey $AccEP $VMPool $VMName $VMIP $
 echo 'SHELL=/bin/sh' > cron.txt
 echo 'PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin' >> cron.txt 
 echo '' >> cron.txt
-echo '@reboot cd /home/azfleet && nohup python3 ./azfleetAgent.py >console.log 2>error.log &' >> cron.txt
+echo '@reboot cd /home/azfleet && nohup python3 ./azfleetagent.py >console.log 2>error.log &' >> cron.txt
 crontab cron.txt
 
 #start agent
