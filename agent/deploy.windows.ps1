@@ -27,9 +27,16 @@ $cmd = "winrm create winrm/config/Listener?Address=*+Transport=HTTPS @{Hostname=
 
 cmd.exe /C $cmd  
 
+#Install SSH server
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+Set-Service sshd -StartupType Automatic
+Set-Service ssh-agent -StartupType Automatic
+Start-Service sshd
+Start-Service ssh-agent
+
 #setup directories 
 $Root = "C:\"
-$Directory = "azsfleet\"
+$Directory = "azfleet\"
 $WorkspacePath = $Root + $Directory
 md $WorkspacePath
 
@@ -66,13 +73,13 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 choco install python -y --version 3.7.7
 
 #configure python libs
-C:\Python37\Scripts\pip install azure-storage-blob==1.1.0
-C:\Python37\Scripts\pip install azure-cosmosdb-table==1.0.0 
+C:\Python37\Scripts\pip install azure-storage-blob==12.5.0
+C:\Python37\Scripts\pip install azure-cosmosdb-table==1.0.6 
 C:\Python37\Scripts\pip install pyyaml
 
-#install azsfleet agent
-$PackageName = "azsfleetagent.py"
-$PackageUrl = "https://raw.githubusercontent.com/bekimd-ms/azsfleet/master/agent/azsfleetagent.py"
+#install azfleet agent
+$PackageName = "azfleetagent.py"
+$PackageUrl = "https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/azfleetagent.py"
 Invoke-WebRequest -Uri $PackageUrl -OutFile ($WorkspacePath + $PackageName)
 md ($WorkspacePath + "\output")
 md ($WorkspacePath + "\workload")
@@ -89,20 +96,20 @@ $VMDiskSize = ($disks[0].Size / 1GB)
 $VMIp = (Get-NetIPAddress -AddressFamily IPv4 | where { $_.InterfaceAlias -notmatch 'Loopback'} | where { $_.InterfaceAlias -notmatch 'vEthernet'}).IPAddress   
 $VMName = hostname
 cd $WorkspacePath
-C:\Python37\python.exe .\azsfleetAgent.py config $AccName $AccKey $AccEP $VMPool $VMName $VMIP $VMOS $VMSize $VMDisks $VMDiskSize
+C:\Python37\python.exe .\azfleetAgent.py config $AccName $AccKey $AccEP $VMPool $VMName $VMIP $VMOS $VMSize $VMDisks $VMDiskSize
 
 #Schedule the agent 
-$agentParams="/C C:\Python37\python .\azsfleetagent.py >console.log 2>agent.err "
+$agentParams="/C C:\Python37\python .\azfleetagent.py >console.log 2>agent.err "
 $action = New-ScheduledTaskAction -Execute "cmd" -Argument $agentParams -WorkingDirectory $WorkspacePath
 $trigger = @()
 $trigger += New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1)
 $trigger += New-ScheduledTaskTrigger -AtStartup
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable -DontStopOnIdleEnd
-Unregister-ScheduledTask -TaskName "azsfleet" -Confirm:0 -ErrorAction Ignore
-Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "azsfleet" -Description "azsfleet agent" -User "System" -RunLevel Highest -Settings $settings
+Unregister-ScheduledTask -TaskName "azfleet" -Confirm:0 -ErrorAction Ignore
+Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "azfleet" -Description "azfleet agent" -User "System" -RunLevel Highest -Settings $settings
 
 #start the agent
-Start-ScheduledTask -TaskName "azsfleet"
+Start-ScheduledTask -TaskName "azfleet"
 
 Stop-Transcript
 

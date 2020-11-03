@@ -1,5 +1,5 @@
 ﻿$Root = "C:\"
-$WorkspacePath = $Root + "azsfleet\"
+$WorkspacePath = $Root + "azfleet\"
 md $WorkspacePath
 
 #Download and unzip controller package
@@ -10,13 +10,20 @@ $PackageUrl = "https://raw.githubusercontent.com/bekimd-ms/AzureStack/master/Rem
 
 Invoke-WebRequest -Uri $PackageUrl -OutFile ($WorkspacePath + $PackageName)
 
-# Install AzureRM 
+# Install Azure PowerShell 
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
 Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
 
 #Install SSH client
 Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+
+#Install SSH server
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+Set-Service sshd -StartupType Automatic
+Set-Service ssh-agent -StartupType Automatic
+Start-Service sshd
+Start-Service ssh-agent
 
 #Enable PSRemoting
 $DNSName = $env:COMPUTERNAME 

@@ -1,6 +1,6 @@
 from azure.cosmosdb.table import TableService
 from azure.cosmosdb.table import Entity
-from azure.storage.blob  import BlockBlobService
+from azure.storage.blob  import BlobServiceClient, BlobClient
 import datetime, time
 import subprocess
 import logging, sys
@@ -41,9 +41,9 @@ WorkloadPath = "./workload/"
 OutputPath   = "./output/"
 
 class Tables:
-    NodeTable  = 'AzSFleetNodes'
-    ExecTable  = 'AzSFleetExec'
-    TaskTable  = 'AzSFleetTask'
+    NodeTable  = 'AzFleetNodes'
+    ExecTable  = 'AzFleetExec'
+    TaskTable  = 'AzFleetTask'
 
 class NodeState:
     Ready     = 'READY'
@@ -163,7 +163,12 @@ class Execution:
     def Run( self ):
         filepath = WorkloadPath + self.Command.File
         logging.info( "Copying blob " + self.Command.File + " to file " + filepath )
-        temp = blobsvc.get_blob_to_path( WorkloadContainer, self.Command.File, filepath )
+
+        blobclient = blobsvc.get_blob_client( WorkloadContainer, self.Command.File )
+        blobstream = blobclient.download_blob()
+        with open(filepath, "wb") as localfile:
+            localfile.write(blobstream.readall())
+
         commandline = self.Command.CommandLine + ' --output "' + OutputPath + self.Output + '" --output-format=json --lat_percentiles=1 "' + filepath + '"'
         logging.info( "Executing: " + commandline )
         self.Process = subprocess.Popen( commandline, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -182,9 +187,12 @@ class Execution:
             else:
                 logging.info( "Command exited with error. Exit code " + str(p) )
                 self.UpdateState( ExecState.Error )        
-
-            blobsvc.create_blob_from_path( OutputContainer, self.Output, OutputPath + self.Output  )
-
+            
+            blobclient = blobsvc.get_blob_client( OutputContainer, self.Output )
+            with open( OutputPath + self.Output, "rb") as localfile:
+                blobclient.upload_blob( localfile, blob_type="BlockBlob")
+            
+            
         return self.State
 
 
@@ -207,10 +215,9 @@ tablesvc = TableService(
     endpoint_suffix=Account.Endpoint
 )
 
-blobsvc = BlockBlobService(
-    account_name=Account.Name, 
-    account_key=Account.Key,
-    endpoint_suffix=Account.Endpoint
+blobsvc = BlobServiceClient(
+    account_url= "http://{Name}.blob.{Endpoint}".format( **Account ), 
+    credemtial = Account.Key  
 )
 
 

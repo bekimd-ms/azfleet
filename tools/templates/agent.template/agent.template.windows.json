@@ -72,7 +72,8 @@
         "location": "[resourceGroup().location]",
         "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
         "subnetPrefix": "10.0.0.0/24",
-        "storageAccountType": "Standard_LRS",
+        "storageSkuName": "Standard_LRS",
+        "storageSkuTier": "Standard",
         "diskType": "Premium_LRS",
         "uniqueStorageAccountName": "[tolower(concat('sa', resourceGroup().name))]",
 		"uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
@@ -91,7 +92,7 @@
         {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[concat(variables('vmNicName'),copyIndex(parameters('vmIndex')))]",
-            "apiVersion": "2015-06-15",
+            "apiVersion": "2020-06-01",
             "location": "[variables('location')]",
 			"tags":{ 
                 "pool": "[parameters('vmPool')]"
@@ -119,7 +120,7 @@
         {
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[concat(variables('vmName'),copyIndex(parameters('vmIndex')))]",
-            "apiVersion": "2017-03-30",
+            "apiVersion": "2020-06-01",
             "location": "[variables('location')]",
 			"tags":{ 
                 "pool": "[parameters('vmPool')]"
@@ -195,8 +196,8 @@
         },
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(variables('vmName'),copyIndex(parameters('vmIndex')),'/AzSFleetExtension')]",
-            "apiVersion": "2015-06-15",
+            "name": "[concat(variables('vmName'),copyIndex(parameters('vmIndex')),'/AzFleetExtension')]",
+            "apiVersion": "2020-06-01",
             "location": "[variables('location')]",
             "tags":{ 
                 "pool": "[parameters('vmPool')]"
@@ -212,7 +213,7 @@
 				"autoUpgradeMinorVersion": true,
 				"settings": {
 					"fileUris": [
-						"https://raw.githubusercontent.com/bekimd-ms/azsfleet/master/agent/deploy.windows.ps1"
+						"https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/deploy.windows.ps1"
 					],
 					"commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ','deploy.windows.ps1 ',variables('uniqueStorageAccountName'),' ',listKeys(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')), '2015-06-15').key1,' ',parameters('StorageEndpointSuffix'),' ',parameters('vmPool'),' ',variables('vmOSType'),' ',parameters('vmSize'))]"
 				}

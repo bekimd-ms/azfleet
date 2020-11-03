@@ -106,7 +106,7 @@
 			"properties": {
 				"securityRules": [
 					{
-					  "name": "default-allow-3389",
+					  "name": "RDP",
 					  "properties": {
 						"priority": 1000,
 						"access": "Allow",
@@ -117,7 +117,20 @@
 						"sourceAddressPrefix": "*",
 						"destinationAddressPrefix": "*"
 					  }
-					}
+					},
+					{
+						"name": "SSH",
+						"properties": {
+						  "priority": 1001,
+						  "access": "Allow",
+						  "direction": "Inbound",
+						  "destinationPortRange": "22",
+						  "protocol": "Tcp",
+						  "sourcePortRange": "*",
+						  "sourceAddressPrefix": "*",
+						  "destinationAddressPrefix": "*"
+						}
+					  }
 				  ]
 			}
 		},
@@ -242,7 +255,7 @@
         },
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(variables('vmName'),'/AzSFleetExtension')]",
+            "name": "[concat(variables('vmName'),'/AzFleetExtension')]",
             "apiVersion": "2020-06-01",
             "location": "[variables('location')]",
             "properties": {
@@ -252,7 +265,7 @@
 				"autoUpgradeMinorVersion": true,
 				"settings": {
 					"fileUris": [
-						"https://raw.githubusercontent.com/bekimd-ms/azsfleet/master/agent/deploy.controller.ps1"
+						"https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/deploy.controller.ps1"
 					],
 					"commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ','deploy.controller.ps1 ',variables('uniqueStorageAccountName'),' ',listKeys(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')), '2015-06-15').key1,' ',parameters('StorageEndpointSuffix'))]"
 

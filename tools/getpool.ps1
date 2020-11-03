@@ -8,13 +8,13 @@ $rg = $config.resourcegroup
 
 if( $vmPool )
 {
-    $vms = get-azurermvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} 
+    $vms = get-AzVM -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} 
 }
 else {
-    $vms = get-azurermvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -ne $Null} 
+    $vms = get-AzVM -ResourceGroupName $rg -Status | where {$_.Tags.pool -ne $Null} 
 }
 
-$controllerIP = Get-AzureRmPublicIpAddress -ResourceGroupName $rg -Name "controller-ip"
+$controllerIP = Get-AzPublicIpAddress -ResourceGroupName $rg -Name "controller-ip"
 Write-Output ""
 Write-Output "Controller IP " $controllerIP.IpAddress
 Write-Output ""
@@ -23,7 +23,7 @@ Write-Output "Retrieving VM data..."
 $vmlist = @()
 foreach( $vm in $vms )
 {
-    $nif = (Get-AzureRmResource -ResourceId $vm.NetworkProfile.NetworkInterfaces[0].Id | Get-AzureRmNetworkInterface)
+    $nif = (Get-AzResource -ResourceId $vm.NetworkProfile.NetworkInterfaces[0].Id | Get-AzNetworkInterface)
     if( $vm.OSProfile.LinuxConfiguration)
     {
         $os = "Linux"

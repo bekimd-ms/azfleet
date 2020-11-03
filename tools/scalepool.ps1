@@ -11,12 +11,12 @@ $rg = $config.resourcegroup
 $acct = $config.storageaccount
 
 $dn=$rg+$vmPool+"scale"
-$storageEndpointSuffix= ((Get-AzureRmContext).Environment | Get-AzureRmEnvironment).StorageEndpointSuffix
+$storageEndpointSuffix= ((Get-AzContext).Environment | Get-AzEnvironment).StorageEndpointSuffix
 
 if( $vmAddCount -gt 0 )
 {
     Write-Output "Scaling pool $vmPool up with $vmAddCount new nodes." 
-    $vms = get-azurermvm -ResourceGroupName $rg | where {$_.Tags.pool -eq $vmPool} 
+    $vms = Get-AzVM -ResourceGroupName $rg | where {$_.Tags.pool -eq $vmPool} 
     $index = $vms.Count
     
     if( $index -gt 0 )
@@ -26,7 +26,7 @@ if( $vmAddCount -gt 0 )
         $vmDataDisks = $vmZero.StorageProfile.DataDisks.Count
         $vmDataDiskGB =$vmZero.StorageProfile.DataDisks[0].DiskSizeGB
         $vmSize = $vmZero.HardwareProfile.VmSize
-        New-AzureRmResourceGroupDeployment -Name $dn -ResourceGroupName $rg `
+        New-AzResourceGroupDeployment -Name $dn -ResourceGroupName $rg `
                                    -TemplateFile .\templates\agent.template\agent.template.$vmOS.json `
                                    -StorageEndpointSuffix $storageEndpointSuffix -vmPool $vmPool `
                                    -vmIndex $index -vmCount $vmAddCount -vmSize $vmSize `
@@ -39,24 +39,24 @@ if( $vmAddCount -lt 0 )
 {
     $vmAddCount = [math]::abs($vmAddCount)
     Write-Output "Scaling pool $vmPool down by $vmAddCount nodes."
-    $vms = get-azurermvm | where {$_.Tags.pool -eq $vmPool} | where ResourceGroupName -eq $rg
+    $vms = Get-AzVM | where {$_.Tags.pool -eq $vmPool} | where ResourceGroupName -eq $rg
     $vms = $vms | sort Name | select -last $vmAddCount
-    $vms | Remove-AzureRmVm -force -verbose
+    $vms | Remove-AzVm -force -verbose
     
-    $nics = Get-AzureRmNetworkInterface | where Name -like $vmPool* | where ResourceGroupName -eq $rg
+    $nics = Get-AzNetworkInterface | where Name -like $vmPool* | where ResourceGroupName -eq $rg
     $nics = $nics | sort Name | select -last $vmAddCount
-    $nics | Remove-AzureRmNetworkInterface -force -verbose
+    $nics | Remove-AzNetworkInterface -force -verbose
 
     #also delete the storage containers
-    $key = Get-AzureRmStorageAccountKey -ResourceGroupName $rg -Name $acct
-    $ctx = New-AzureStorageContext -StorageAccountName $acct -StorageAccountKey $key.Key1
+    $key = Get-AzStorageAccountKey -ResourceGroupName $rg -Name $acct
+    $ctx = New-AzStorageContext -StorageAccountName $acct -StorageAccountKey $key.Key1
     
     foreach( $vm in $vms)
     {
-        $cont = Get-AzureStorageContainer -Context $ctx -Prefix $vm.Name
-        $cont | remove-azurestoragecontainer -Force
+        $cont = Get-AzStorageContainer -Context $ctx -Prefix $vm.Name
+        $cont | Remove-AzStorageContainer -Force
     }
 
 }
 
-get-azurermvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} | ft
+get-Azvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} | ft

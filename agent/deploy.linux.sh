@@ -38,19 +38,19 @@ cd /home/diskspd/diskspd-for-linux-master && make install
 
 #configure python libs
 apt-get install python3-pip -y 
-pip3 install azure-storage-blob==2.1.0
-pip3 install azure-cosmosdb-table==1.0.6  
+pip3 install azure-storage-blob==12.5.0
+pip3 install azure-cosmosdb-table==1.0.6
 pip3 install pyyaml
 
-#install azsfleet agent
+#install azfleet agent
 cd /home/ 
-mkdir azsfleet
-chmod -R 777 ./azsfleet
-cd azsfleet
-wget https://raw.githubusercontent.com/bekimd-ms/azsfleet/master/agent/azsfleetagent.py
-mkdir /home/azsfleet/output
+mkdir azfleet
+chmod -R 777 ./azfleet
+cd azfleet
+wget https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/azfleetagent.py
+mkdir /home/azfleet/output
 chmod -R 777 ./output
-mkdir /home/azsfleet/workload
+mkdir /home/azfleet/workload
 chmod -R 777 ./workload
 
 #configure agent
@@ -65,17 +65,17 @@ VMDiskSize=$disksize
 VMName=$(hostname)
 VMIP=$(hostname --ip-address)
 
-python3 ./azsfleetagent.py config $AccName $AccKey $AccEP $VMPool $VMName $VMIP $VMOS $VMSize $VMDisks $VMDiskSize
+python3 ./azfleetagent.py config $AccName $AccKey $AccEP $VMPool $VMName $VMIP $VMOS $VMSize $VMDisks $VMDiskSize
                                  
 #schedule the agent 
 echo 'SHELL=/bin/sh' > cron.txt
 echo 'PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin' >> cron.txt 
 echo '' >> cron.txt
-echo '@reboot cd /home/azsfleet && nohup python3 ./azsfleetAgent.py >console.log 2>error.log &' >> cron.txt
+echo '@reboot cd /home/azfleet && nohup python3 ./azfleetAgent.py >console.log 2>error.log &' >> cron.txt
 crontab cron.txt
 
 #start agent
-cd /home/azsfleet && nohup python3 ./azsfleetagent.py >/dev/null 2>agent.err &
+cd /home/azfleet && nohup python3 ./azfleetagent.py >/dev/null 2>agent.err &
 
 
 

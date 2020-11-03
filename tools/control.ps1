@@ -9,13 +9,13 @@ $config = get-content $configfile | ConvertFrom-Json
 
 $rgname = $config.resourcegroup
 $AccountName = $config.storageaccount
-$AccountKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $rgname -Name $AccountName)[0].Value
-$AccountEndpoint  = (Get-AzureRmEnvironment (Get-AzureRmContext).Environment).StorageEndpointSuffix
+$AccountKey = (Get-AzStorageAccountKey -ResourceGroupName $rgname -Name $AccountName)[0].Value
+$AccountEndpoint  = (Get-AzEnvironment (Get-AzContext).Environment).StorageEndpointSuffix
 
-$NodeTableName  = 'AzSFleetNodes'
-$ExecTableName  = 'AzSFleetExec'
-$TaskTableName  = 'AzSFleetTask'
-$JobTableName   = 'AzSFleetJob'
+$NodeTableName  = 'AzFleetNode'
+$ExecTableName  = 'AzFleetExec'
+$TaskTableName  = 'AzFleetTask'
+$JobTableName   = 'AzFleetJob'
 
 $workloadContainer = "workload"
 $workloadPath = ".\\workload\\"
@@ -23,21 +23,21 @@ $outputContainer = "output"
 $outputPath = ".\\output\\"
 
 
-$ctx = New-AzureStorageContext -StorageAccountName $AccountName -StorageAccountKey $AccountKey -Endpoint $AccountEndpoint
+$ctx = New-AzStorageContext -StorageAccountName $AccountName -StorageAccountKey $AccountKey -Endpoint $AccountEndpoint
 
-$tables = Get-AzureStorageTable -Context $ctx
+$tables = Get-AzStorageTable -Context $ctx
 
 $NodeTable = $tables | where Name -eq $NodeTableName 
-if( -not $NodeTable ) { New-AzureStorageTable -Name $NodeTableName -Context $ctx }
+if( -not $NodeTable ) { $NodeTable = New-AzStorageTable -Name $NodeTableName -Context $ctx }
 $ExecTable = $tables | where Name -eq $ExecTableName 
-if( -not $ExecTable ) { New-AzureStorageTable -Name $ExecTableName -Context $ctx}
+if( -not $ExecTable ) { $ExecTable = New-AzStorageTable -Name $ExecTableName -Context $ctx}
 $TaskTable = $tables | where Name -eq $TaskTableName 
-if( -not $TaskTable ) { New-AzureStorageTable -Name $TaskTableName -Context $ctx}
+if( -not $TaskTable ) { $TaskTable = New-AzStorageTable -Name $TaskTableName -Context $ctx}
 $JobTable = $tables | where Name -eq $JobTableName 
-if( -not $JobTable ) { New-AzureStorageTable -Name $JobTableName -Context $ctx}
+if( -not $JobTable ) { $JobTable = New-AzStorageTable -Name $JobTableName -Context $ctx}
 
-if( -not (Get-AzureStorageContainer -context $ctx -Name $workloadContainer -ErrorAction Ignore ) ){ New-AzureStorageContainer -Name $workloadContainer -Context $ctx }
-if( -not (Get-AzureStorageContainer -context $ctx -Name $outputContainer -ErrorAction Ignore ) ){ New-AzureStorageContainer -Name $outputContainer -Context $ctx }
+if( -not (Get-AzStorageContainer -context $ctx -Name $workloadContainer -ErrorAction Ignore ) ){ New-AzStorageContainer -Name $workloadContainer -Context $ctx }
+if( -not (Get-AzStorageContainer -context $ctx -Name $outputContainer -ErrorAction Ignore ) ){ New-AzStorageContainer -Name $outputContainer -Context $ctx }
 
 if( -not (Test-Path $outputPath)) { md $outputPath }
 
@@ -61,8 +61,9 @@ $pools = @()
 function LoadPools()
 {
     $global:pools = @()
-    $query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    $data = $NodeTable.CloudTable.ExecuteQuery($query)
+    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
+    #$data = $NodeTable.CloudTable.ExecuteQuery($query)
+    $data = Get-AzTableRow -table $NodeTable.CloudTable 
     $pooldata = $data | group PartitionKey 
     foreach( $poolentry in $pooldata )
     {
@@ -104,16 +105,20 @@ function ListPools()
 function CleanPools( $Params )
 {
     Write-Output "Getting all pool node info"
-    $query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    $data = $NodeTable.CloudTable.ExecuteQuery($query)
-    $groups = $data | group PartitionKey 
+    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
+    #$data = $NodeTable.CloudTable.ExecuteQuery($query)
+    #$data = Get-AzTableRow -Table $NodeTable.CloudTable
+    #$groups = $data | group PartitionKey 
     
-    foreach( $group in $groups.Group )
-    {
-        $batch = New-Object "Microsoft.WindowsAzure.Storage.Table.TableBatchOperation"
-        $group | %{ $batch.Delete( $_ ) } 
-        $NodeTable.CloudTable.ExecuteBatch( $batch )
-    }
+    #foreach( $group in $groups.Group )
+    #{
+    #    $batch = New-Object "Microsoft.WindowsAzure.Storage.Table.TableBatchOperation"
+    #    $group | %{ $batch.Delete( $_ ) } 
+    #    $NodeTable.CloudTable.ExecuteBatch( $batch )
+    #}
+
+    Get-AzTableRow -table $NodeTable.CloudTable | Remove-AzTableRow -table $nodeTable.CloudTable 
+
 }
 
 function StartJob( $Params )
@@ -164,11 +169,11 @@ function StartJob( $Params )
         #copy file $pooljob.FileName to blob storage 
         $jobfilepath = ($workloadpath + $pooljob.JobFile)
         Write-Output ( "Copying file: " + $pooljob.JobFile + " to storage: " + $jobfilepath )
-        $temp = Set-AzureStorageBlobContent -File $jobfilepath `
-                                            -Container $workloadContainer `
-                                            -Blob $poolJob.JobFile `
-                                            -Context $ctx `
-                                            -Force 
+        $temp = Set-AzStorageBlobContent -File $jobfilepath `
+                                         -Container $workloadContainer `
+                                         -Blob $poolJob.JobFile `
+                                         -Context $ctx `
+                                         -Force 
 
         #create task for each node 
         Write-Output ( "Executing job: " + $pooljob.JobFile + " on pool: " + $pooljob.Pool.Name )
@@ -184,11 +189,17 @@ function StartJob( $Params )
     Write-Output ''
 
     # write the job record into the jobs table
-    $entity = New-Object "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity" $jobId, ''
-    $entity.Properties.Add("Command", "EXECUTE")
-    $entity.Properties.Add("Params", $Params)
-    $temp = $JobTable.CloudTable.Execute([Microsoft.WindowsAzure.Storage.Table.TableOperation]::Insert($entity))        
+    #$entity = New-Object "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity" $jobId, ''
+    #$entity.Properties.Add("Command", "EXECUTE")
+    #$entity.Properties.Add("Params", $Params)
+    #$temp = $JobTable.CloudTable.Execute([Microsoft.WindowsAzure.Storage.Table.TableOperation]::Insert($entity))        
+
+    Add-AzTableRow -table $JobTable.CloudTable `
+                   -PartitionKey $jobId `
+                   -property @{"Command"="Execute";"Params"=$Params}
+                   
 }
+
 
 
 function GetJob( $Params)
@@ -223,13 +234,14 @@ function GetJobData( $Params )
     }
 
     $partitionKey = $Params
-    $query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    $filter = [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterCondition( `
-                    "PartitionKey",`
-                    [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::Equal,`
-                    $partitionKey )
-    $query.FilterString = $filter    
-    $result = $ExecTable.CloudTable.ExecuteQuery($query)
+    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
+    #$filter = [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterCondition( `
+    #                "PartitionKey",`
+    #                [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::Equal,`
+    #                $partitionKey )
+    #$query.FilterString = $filter    
+    #$result = $ExecTable.CloudTable.ExecuteQuery($query)
+    $result = Get-AzTableRow -table $ExecTable.CloudTable -partitionKey $partitionKey
 
     $executions = $result | select @{Label="JobId"; Expression={$_.PartitionKey}}, `
                    @{Label="Node"; Expression={$_.RowKey}}, `
@@ -269,10 +281,10 @@ function ExecutionResultParse( $execution )
     $outputfile = $outputPath + $execution.Output
     if( -not (Test-Path $outputfile) )
     {
-        $outfile = Get-AzureStorageBlobContent -Container $outputContainer `
-                                        -Blob $execution.Output `
-                                        -Destination ($outputPath + $execution.Output) `
-                                        -Context $ctx -Force
+        $outfile = Get-AzStorageBlobContent -Container $outputContainer `
+                                            -Blob $execution.Output `
+                                            -Destination ($outputPath + $execution.Output) `
+                                            -Context $ctx -Force
     }
 
     $json = get-content ( $outputPath + $execution.Output ) | convertfrom-json
@@ -311,8 +323,9 @@ function ExecutionResultParse( $execution )
 
 function ListJobs() 
 {
-    $query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    $data = $JobTable.CloudTable.ExecuteQuery($query)
+    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
+    #$data = $JobTable.CloudTable.ExecuteQuery($query)
+    $data = Get-AzTableRow -Table $JobTable.CloudTable
     $data | select @{Label="JobId"; Expression={$_.PartitionKey}}, `
                    @{Label="Command"; Expression={$_.Properties['Command'].StringValue}}, `
                    @{Label="Params";Expression={$_.Properties['Params'].StringValue}} `
@@ -325,12 +338,16 @@ function StartTask( $node, $job )
 {
     Write-Output( "  Starting task: " + $job.Command + "|" + $job.CommandLine + "| on node: " + $Node.Name  )
 
-    $entity = New-Object "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity" ($node.Pool + "_" + $node.Name), $job.Id
-    $entity.Properties.Add("Command", $job.Command)
-    $entity.Properties.Add("CommandLine", $job.CommandLine)
-    $entity.Properties.Add("File", $job.JobFile)
-    $temp = $TaskTable.CloudTable.Execute([Microsoft.WindowsAzure.Storage.Table.TableOperation]::Insert($entity))
-
+    #$entity = New-Object "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity" ($node.Pool + "_" + $node.Name), $job.Id
+    #$entity.Properties.Add("Command", $job.Command)
+    #$entity.Properties.Add("CommandLine", $job.CommandLine)
+    #$entity.Properties.Add("File", $job.JobFile)
+    #$temp = $TaskTable.CloudTable.Execute([Microsoft.WindowsAzure.Storage.Table.TableOperation]::Insert($entity))
+    Add-AzTableRow -Table $TaskTable.CloudTable `
+                   -PartitionKey ($node.Pool + "_" + $node.Name) `
+                   -RowKey $job.Id `
+                   -property @{"Command"=$job.Command;"CommandLine"=$jobCommandLine;"File"=$job.JobFile} 
+                   
 }
 
 switch( $object ){
@@ -391,7 +408,7 @@ switch( $object ){
     }
 
     default{
-        Write-Output "ERROR: unrecognized object"
+        Write-Output "ERROR: unrecognized command"
     }
 }
 

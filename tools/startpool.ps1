@@ -8,17 +8,17 @@ $rg = $config.resourcegroup
 
 #first check if pool with this name already exists. If it does exit with error
 #check if the state of the pool machiknes in the pool is not "stopping".  
-$vms = get-azurermvm -ResourceGroupName $rg | where {$_.Tags.pool -eq $vmPool} 
-$context = Get-AzureRMContext;
-Enable-AzureRmContextAutosave -Scope CurrentUser
+$vms = Get-AzVM -ResourceGroupName $rg | where {$_.Tags.pool -eq $vmPool} 
+$context = Get-AzContext;
+Enable-AzContextAutosave -Scope CurrentUser
 
 $jobs = @()
 
 $script = {
     Param( $rg, $vmname, $context )
-    Import-Module AzureRM -RequiredVersion 2.3.0
-    Select-AzureRMContext -Name $context.Name    
-    Start-AzureRMVM -ResourceGroupName $rg -Name $vmname
+    Import-Module Az -RequiredVersion 5.0.0
+    Select-AzContext -Name $context.Name    
+    Start-AzVM -ResourceGroupName $rg -Name $vmname
 }
 
 $vms | %{ 
@@ -57,4 +57,4 @@ while($running -and $timeElapsed -le $Timeout)
     }
 }
 
-get-azurermvm -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} 
+Get-AzVM -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} 
