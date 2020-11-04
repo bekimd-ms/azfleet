@@ -41,7 +41,7 @@ WorkloadPath = "./workload/"
 OutputPath   = "./output/"
 
 class Tables:
-    NodeTable  = 'AzFleetNodes'
+    NodeTable  = 'AzFleetNode'
     ExecTable  = 'AzFleetExec'
     TaskTable  = 'AzFleetTask'
 
