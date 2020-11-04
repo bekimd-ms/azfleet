@@ -83,10 +83,11 @@ $PackageUrl  = "https://gallery.technet.microsoft.com/DiskSpd-A-Robust-Storage-6
 Invoke-WebRequest -Uri $PackageUrl -OutFile $PackageName
 Expand-Archive $PackageName ($WorkspacePath + "diskspd")
 
-#install python 
+#install choco 
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-
+#install python 
 choco install python -y --version 3.7.7
+choco install -y nano
 
 #configure python libs
 C:\Python37\Scripts\pip install azure-storage-blob==12.5.0
