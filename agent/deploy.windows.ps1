@@ -87,6 +87,7 @@ Expand-Archive $PackageName ($WorkspacePath + "diskspd")
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 #install python 
 choco install python -y --version 3.7.7
+#install nano editor
 choco install -y nano
 
 #configure python libs

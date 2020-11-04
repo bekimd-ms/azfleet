@@ -79,11 +79,11 @@ function LoadPools()
             $node = [PSCustomObject]@{
                 Pool = $nodeentry.PartitionKey
                 Name = $nodeentry.RowKey
-                Timestamp = $nodeentry.TimeStamp
-                State = $nodeentry.Properties["State"].StringValue
-                IP = $nodeentry.Properties["IP"].StringValue
-                OS = $nodeentry.Properties["OS"].StringValue
-                Size = $nodeentry.Properties["Size"].StringValue               
+                Timestamp = $nodeentry.TableTimestamp
+                State = $nodeentry.State
+                IP = $nodeentry.IP
+                OS = $nodeentry.OS
+                Size = $nodeentry.Size               
             }
             if( $node.State -ne "READY" ) { $pool.State = "NOT READY"} 
             $pool.Nodes += @($node)            
@@ -246,9 +246,9 @@ function GetJobData( $Params )
     $executions = $result | select @{Label="JobId"; Expression={$_.PartitionKey}}, `
                    @{Label="Node"; Expression={$_.RowKey}}, `
                    @{Label="LastUpdateTime"; Expression={$_.TimeStamp}}, `
-                   @{Label="Executable"; Expression={$_.Properties['Executable'].StringValue}}, `
-                   @{Label="Output"; Expression={$_.Properties['Output'].StringValue}}, `
-                   @{Label="State";Expression={$_.Properties['State'].StringValue}} 
+                   @{Label="Executable"; Expression={$_.Executable}}, `
+                   @{Label="Output"; Expression={$_.Output}}, `
+                   @{Label="State";Expression={$_.State}} 
 
 
     #Check also if the hearbeat from Nodes is stale. 
@@ -327,8 +327,8 @@ function ListJobs()
     #$data = $JobTable.CloudTable.ExecuteQuery($query)
     $data = Get-AzTableRow -Table $JobTable.CloudTable
     $data | select @{Label="JobId"; Expression={$_.PartitionKey}}, `
-                   @{Label="Command"; Expression={$_.Properties['Command'].StringValue}}, `
-                   @{Label="Params";Expression={$_.Properties['Params'].StringValue}} `
+                   @{Label="Command"; Expression={$_.Command}}, `
+                   @{Label="Params";Expression={$_.Params}} `
           | sort JobId -Descending
 
 
