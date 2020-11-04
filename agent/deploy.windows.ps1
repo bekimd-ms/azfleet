@@ -1,20 +1,36 @@
 ﻿$logFile = 'C:\deploylog.txt'
 Start-Transcript $logFile -Append -Force
 
-#Create storage space over data disks
-$poolname = "datapool"
-$vdname = "datavd"
-$disks = Get-PhysicalDisk | where BusType -eq "SAS"
-$storage = Get-StorageSubSystem
-$pool = New-StoragePool -FriendlyName $poolname -PhysicalDisks $disks -StorageSubSystemName $storage.Name
-$vdisk = New-VirtualDisk -FriendlyName $vdname `
-                -ResiliencySettingName Simple `
-                -NumberOfColumns $Disks.Count `
-                -UseMaximumSize -Interleave 65536 -StoragePoolFriendlyName $poolname
-$vdiskNumber = (Get-disk -FriendlyName $vdname).Number
-Initialize-Disk -FriendlyName $vdname -PartitionStyle GPT -PassThru
-$partition = New-Partition -UseMaximumSize -DiskNumber $vdiskNumber -DriveLetter X
-Format-Volume -DriveLetter X -FileSystem NTFS -NewFileSystemLabel "data" -AllocationUnitSize 65536
+$disks = Get-Disk | where BusType -eq "SAS"
+
+#Configure disks 
+if( $disks -is [array] ) {
+    #Create storage space over data disks
+    $poolname = "datapool"
+    $vdname = "datavd"
+    $diskcount = $disks.Count
+    $disksize  = $disks[0].Size
+    $disks = Get-PhysicalDisk | where BusType -eq "SAS"
+    $storage = Get-StorageSubSystem
+    $pool = New-StoragePool -FriendlyName $poolname -PhysicalDisks $disks -StorageSubSystemName $storage.Name
+    $vdisk = New-VirtualDisk -FriendlyName $vdname `
+                    -ResiliencySettingName Simple `
+                    -NumberOfColumns $disks.Count `
+                    -UseMaximumSize -Interleave 65536 -StoragePoolFriendlyName $poolname
+    $vdiskNumber = (Get-disk -FriendlyName $vdname).Number
+    Initialize-Disk -FriendlyName $vdname -PartitionStyle GPT -PassThru
+    New-Partition -UseMaximumSize -DiskNumber $vdiskNumber -DriveLetter X
+    Format-Volume -DriveLetter X -FileSystem NTFS -NewFileSystemLabel "data" -AllocationUnitSize 65536
+}
+else {
+    #Format one disk 
+    $disk = $disks
+    $diskcount = 1
+    $disksize = $disk.Size
+    $disk | Initialize-Disk -PartitionStyle GPT -PassThru
+    New-Partition -UseMaximumSize -DiskNumber $disk.Number -DriveLetter X
+    Format-Volume -DriveLetter X -FileSystem NTFS -NewFileSystemLabel "data" -AllocationUnitSize 65536
+}
 
 #Enable PSRemoting
 $DNSName = $env:COMPUTERNAME 
@@ -91,8 +107,8 @@ $AccEP   = $args[2]
 $VMPool = $args[3]
 $VMOS   = $args[4]
 $VMSize = $args[5]
-$VMDisks = $disks.Count
-$VMDiskSize = ($disks[0].Size / 1GB)
+$VMDisks = $diskcount
+$VMDiskSize = ($disksize/ 1GB)
 $VMIp = (Get-NetIPAddress -AddressFamily IPv4 | where { $_.InterfaceAlias -notmatch 'Loopback'} | where { $_.InterfaceAlias -notmatch 'vEthernet'}).IPAddress   
 $VMName = hostname
 cd $WorkspacePath

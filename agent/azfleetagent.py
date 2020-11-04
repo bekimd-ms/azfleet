@@ -216,7 +216,7 @@ tablesvc = TableService(
 )
 
 blobsvc = BlobServiceClient(
-    account_url= "http://{Name}.blob.{Endpoint}".format( **Account ), 
+    account_url= "http://{Name}.blob.{Endpoint}".format( Name=Account.Name, Endpoint=Account.Endpoint } 
     credemtial = Account.Key  
 )
 
