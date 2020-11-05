@@ -1,0 +1,246 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0",
+	"parameters": {
+		"vmAdminUsername": {
+            "type": "String"
+        },
+		"vmAdminPassword": {
+            "type": "String"
+        },
+		"storageEndpointSuffix": {
+            "defaultValue": "core.windows.net",
+            "type": "String"
+        },
+		"vmSize": {
+			"type": "string",
+			"defaultValue": "Standard_A1",
+				"allowedValues": [
+				"Standard_A0",
+				"Standard_A1",
+				"Standard_A2",
+				"Standard_A3",
+				"Standard_A4",
+				"Standard_A5",
+				"Standard_A6",
+				"Standard_A7",
+				"Standard_D1",
+				"Standard_D2",
+				"Standard_D3",
+				"Standard_D4",
+				"Standard_D11",
+				"Standard_D12",
+				"Standard_D13",
+				"Standard_D14",
+				"Standard_D1_v2",
+				"Standard_D2_v2",
+				"Standard_D3_v2",
+				"Standard_D4_v2",
+				"Standard_D5_v2",
+				"Standard_D11_v2",
+				"Standard_D12_v2",
+				"Standard_D13_v2",
+				"Standard_D14_v2",
+				"Standard_DS1",
+				"Standard_DS2",
+				"Standard_DS3",
+				"Standard_DS4",
+				"Standard_DS11",
+				"Standard_DS12",
+				"Standard_DS13",
+				"Standard_DS14",
+				"Standard_DS1_v2",
+				"Standard_DS2_v2",
+				"Standard_DS3_v2",
+				"Standard_DS4_v2",
+				"Standard_DS5_v2",
+				"Standard_DS11_v2",
+				"Standard_DS12_v2",
+				"Standard_DS13_v2",
+				"Standard_DS14_v2"
+			],
+			"metadata": {
+				"description": "VM size supported by Azure Stack."
+			}
+		}
+	},
+	"variables": {
+        "imagePublisher": "Canonical",
+		"imageOffer": "UbuntuServer",
+		"imageSku": "18.04-LTS",
+        "addressPrefix": "10.0.0.0/16",
+        "location": "[resourceGroup().location]",
+        "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
+        "subnetPrefix": "10.0.0.0/24",
+		"storageSkuName": "Standard_LRS",
+		"storageSkuTier": "Standard",
+        "uniqueStorageAccountName": "[tolower(concat('sa', resourceGroup().name))]",
+        "uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
+		"vmName": "['controller']",
+		"vmOsType": "Linux",
+        "vmOsDiskName": "['controller-od']",
+        "vmNicName": "['controller-nic']",
+        "virtualNetworkName": "[tolower(concat('vn', resourceGroup().name))]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+        "nsgName": "[tolower(concat('ng', resourceGroup().name))]",
+        "nsgID": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
+		"publicIPAddressName": "['controller-ip']",
+		"dnsPrefix": "[tolower(concat('vmdns', resourceGroup().name))]"
+    },
+	"resources": [
+		{
+			"apiVersion": "2019-06-01",
+			"type": "Microsoft.Storage/storageAccounts",
+			"name": "[tolower(variables('uniqueStorageAccountName'))]",
+			"location": "[variables('location')]",
+			"sku": {
+				"name": "[variables('storageSkuName')]",
+				"tier": "[variables('storageSkuTier')]"
+			}
+		},
+		{
+			"apiVersion": "2020-06-01",
+			"type": "Microsoft.Network/networkSecurityGroups",
+			"name": "[variables('nsgName')]",
+			"location": "[variables('location')]",
+			"properties": {
+				"securityRules": [
+					{
+						"name": "SSH",
+						"properties": {
+						  "priority": 1001,
+						  "access": "Allow",
+						  "direction": "Inbound",
+						  "destinationPortRange": "22",
+						  "protocol": "Tcp",
+						  "sourcePortRange": "*",
+						  "sourceAddressPrefix": "*",
+						  "destinationAddressPrefix": "*"
+						}
+					  }
+				  ]
+			}
+		},
+		{
+			"apiVersion": "2020-06-01",
+			"type": "Microsoft.Network/virtualNetworks",
+			"name": "[variables('virtualNetworkName')]",
+			"location": "[variables('location')]",
+			"dependsOn": [ "[concat('Microsoft.Network/networkSecurityGroups/', variables('nsgName'))]" ],
+			"properties": {
+				"addressSpace": {
+					"addressPrefixes": [
+						"[variables('addressPrefix')]"
+					]
+				},
+				"subnets": [
+					{
+						"name": "[variables('subnetName')]",
+						"properties": {
+							"addressPrefix": "[variables('subnetPrefix')]",
+							"networkSecurityGroup": {
+								"id": "[variables('nsgID')]"
+							}
+						}
+					}
+				]
+			}
+		},
+		{
+			"type": "Microsoft.Network/publicIPAddresses",
+			"name": "[variables('publicIPAddressName')]",
+			"apiVersion": "2020-06-01",
+			"location": "[resourceGroup().location]",
+			"properties": {
+				"publicIPAllocationMethod": "Dynamic",
+				"dnsSettings": {
+					"domainNameLabel": "[variables('dnsPrefix')]"
+				}
+			},
+			"dependsOn": [
+				"[variables('vnetID')]"
+			]
+		},
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('vmNicName')]",
+            "apiVersion": "2020-06-01",
+            "location": "[variables('location')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfigpri",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+							"publicIPAddress": {
+								"id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+							}
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+				"[concat('Microsoft.Network/virtualNetworks/',variables('virtualNetworkName'))]",
+				"[concat('Microsoft.Network/publicIPAddresses/',variables('publicIPAddressName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('vmName')]",
+            "apiVersion": "2020-06-01",
+            "location": "[variables('location')]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmName')]",
+                    "adminUsername": "[parameters('vmAdminUsername')]",
+                    "adminPassword": "[parameters('vmAdminPassword')]",
+					"linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[variables('imageSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+						"osType": "Linux",
+                        "name": "[variables('vmOsDiskName')]",
+                        "caching": "None",
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('storageSkuName')]"
+                        }
+                    },
+                    "dataDisks": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('vmNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/',variables('vmNicName'))]"
+            ]
+        }
+    ]
+}

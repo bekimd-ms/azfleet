@@ -3,18 +3,18 @@ apt-get upgrade -y
 
 #get the data disk configuration
 #disks=($(lsblk -l -p -o NAME | grep "sd" | grep -v "sda" | grep -v "sdb"))
-disks=($(find /dev/disk/azure/scsi1/* -exec readlink -f {} \;))
+disks=($(find /dev/disk/azure/scsi1/* ! -iname "*part*" -exec readlink -f {} \;))
 diskscnt=${#disks[*]}
 disksizes=($(lsblk -l -p -o size ${disks[0]}))
 disksize=${disksizes[1]}
 
-if [ "$diskcnt" = "1"]; then
+if [ "$diskcnt" = "1" ]; then
        #single disk: format the disk
-       disk = ${disks[0]}
+       disk=${disks[0]}
        parted $disk --script mklabel gpt mkpart xfspart xfs 0% 100%
-       $diskpart = "$disk"1
+       diskpart="$disk"1
        mkfs.xfs $diskpart
-       echo -e "$diskpart""\t/data\xfs\tdefaults,nofail\t1\t2" >> /etc/fstab
+       echo -e "$diskpart""\t/mnt/data\txfs\tdefaults,nofail\t1\t2" >> /etc/fstab
 
 else
        #multiple disks: create one volume striped over all data disks
@@ -22,15 +22,15 @@ else
        do
               echo -e "n\np\n1\n\n\nt\nfd\nw" | fdisk $disk
        done
-       #pdisks=($(find /dev/disk/azure/scsi1/*-part* -exec readlink -f {} \;))
+       pdisks=($(find /dev/disk/azure/scsi1/*-part* -exec readlink -f {} \;))
        mdadm --create /dev/md0 --level 0 --raid-devices ${#pdisks[*]} ${pdisks[*]} --force
        mkfs -t ext4 /dev/md0
-       echo -e "/dev/md0\t/data\text4\tdefaults\t0\t2" >> /etc/fstab
+       echo -e "/dev/md0\t/mnt/data\text4\tdefaults\t0\t2" >> /etc/fstab
 fi
 
-mkdir /data
+mkdir /mnt/data
 mount -a
-chmod -R 777 /data
+chmod -R 777 /mnt/data
 
 #install libraries 
 apt-get install make gcc g++ unzip zlib1g-dev libboost-all-dev libssl-dev libxml2-dev libxml++2.6-dev libxml++2.6-doc uuid-dev libaio-dev cmake -y

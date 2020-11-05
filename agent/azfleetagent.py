@@ -6,7 +6,8 @@ import subprocess
 import logging, sys
 import yaml
 
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+logger = logging.getLogger( "azfleetagent")
+logger.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 def WriteConfig( params ):
     config = dict(
@@ -216,7 +217,7 @@ tablesvc = TableService(
 )
 
 blobsvc = BlobServiceClient(
-    account_url= "http://{Name}.blob.{Endpoint}".format( Name=Account.Name, Endpoint=Account.Endpoint ), 
+    account_url= "https://{Name}.blob.{Endpoint}".format( Name=Account.Name, Endpoint=Account.Endpoint ), 
     credential = Account.Key  
 )
 

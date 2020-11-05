@@ -44,8 +44,8 @@ New-AzResourceGroup -Name azfleet -Location $location
 
 Create two pools of 2 VMs. One pool contains Linux VMs and one pool contains Windows VMs.<br>
 ```powershell
-.\deploypool.ps1 -vmPool lin1 -vmCount 2 -vmOS linux   -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
-.\deploypool.ps1 -vmPool win1 -vmCount 2 -vmOS windows -vmSize Standard_F2s_v2 -vmDataDisks 4 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+.\deploypool.ps1 -vmPool lin1 -vmCount 2 -vmOS linux   -vmSize Standard_F2s_v2 -vmDataDisks 1 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+.\deploypool.ps1 -vmPool win1 -vmCount 2 -vmOS windows -vmSize Standard_F2s_v2 -vmDataDisks 1 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
 ```
 
 After the template deployments complete check that the VMs are ready to execute jobs.<br>

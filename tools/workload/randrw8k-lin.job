@@ -14,6 +14,6 @@ group_reporting=1
 size=4G
 iodepth=64
 ioengine=libaio
-directory=/data
+directory=/mnt/data
 
 

@@ -61,8 +61,6 @@ $pools = @()
 function LoadPools()
 {
     $global:pools = @()
-    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    #$data = $NodeTable.CloudTable.ExecuteQuery($query)
     $data = Get-AzTableRow -table $NodeTable.CloudTable 
     $pooldata = $data | group PartitionKey 
     foreach( $poolentry in $pooldata )
@@ -104,21 +102,11 @@ function ListPools()
 
 function CleanPools( $Params )
 {
-    Write-Output "Getting all pool node info"
-    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    #$data = $NodeTable.CloudTable.ExecuteQuery($query)
-    #$data = Get-AzTableRow -Table $NodeTable.CloudTable
-    #$groups = $data | group PartitionKey 
-    
-    #foreach( $group in $groups.Group )
-    #{
-    #    $batch = New-Object "Microsoft.WindowsAzure.Storage.Table.TableBatchOperation"
-    #    $group | %{ $batch.Delete( $_ ) } 
-    #    $NodeTable.CloudTable.ExecuteBatch( $batch )
-    #}
-
-    Get-AzTableRow -table $NodeTable.CloudTable | Remove-AzTableRow -table $nodeTable.CloudTable 
-
+    Write-Output "Getting all pool data tables"
+    Get-AzTableRow -table $NodeTable.CloudTable | Remove-AzTableRow -table $NodeTable.CloudTable 
+    Get-AzTableRow -table $JobTable.CloudTable | Remove-AzTableRow -table $JobTable.CloudTable 
+    Get-AzTableRow -table $ExecTable.CloudTable | Remove-AzTableRow -table $ExecTable.CloudTable 
+    Get-AzTableRow -table $TaskTable.CloudTable | Remove-AzTableRow -table $TaskTable.CloudTable 
 }
 
 function StartJob( $Params )
@@ -188,14 +176,9 @@ function StartJob( $Params )
     Write-Output ''
     Write-Output ''
 
-    # write the job record into the jobs table
-    #$entity = New-Object "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity" $jobId, ''
-    #$entity.Properties.Add("Command", "EXECUTE")
-    #$entity.Properties.Add("Params", $Params)
-    #$temp = $JobTable.CloudTable.Execute([Microsoft.WindowsAzure.Storage.Table.TableOperation]::Insert($entity))        
-
     Add-AzTableRow -table $JobTable.CloudTable `
                    -PartitionKey $jobId `
+                   -RowKey '' `
                    -property @{"Command"="Execute";"Params"=$Params}
                    
 }
@@ -234,13 +217,6 @@ function GetJobData( $Params )
     }
 
     $partitionKey = $Params
-    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    #$filter = [Microsoft.WindowsAzure.Storage.Table.TableQuery]::GenerateFilterCondition( `
-    #                "PartitionKey",`
-    #                [Microsoft.WindowsAzure.Storage.Table.QueryComparisons]::Equal,`
-    #                $partitionKey )
-    #$query.FilterString = $filter    
-    #$result = $ExecTable.CloudTable.ExecuteQuery($query)
     $result = Get-AzTableRow -table $ExecTable.CloudTable -partitionKey $partitionKey
 
     $executions = $result | select @{Label="JobId"; Expression={$_.PartitionKey}}, `
@@ -264,7 +240,7 @@ function GetJobData( $Params )
         $job.Executions += @($execution)                                
     }
 
-    if( ($executions | where State -ne "EXECUTING").Count -eq $executions.Count )
+    if( ($executions | where State -eq "COMPLETED").Count -eq $executions.Count )
     {
         $job.State = 'COMPLETED'
     }
@@ -323,8 +299,6 @@ function ExecutionResultParse( $execution )
 
 function ListJobs() 
 {
-    #$query = New-Object "Microsoft.WindowsAzure.Storage.Table.TableQuery"
-    #$data = $JobTable.CloudTable.ExecuteQuery($query)
     $data = Get-AzTableRow -Table $JobTable.CloudTable
     $data | select @{Label="JobId"; Expression={$_.PartitionKey}}, `
                    @{Label="Command"; Expression={$_.Command}}, `
@@ -338,15 +312,10 @@ function StartTask( $node, $job )
 {
     Write-Output( "  Starting task: " + $job.Command + "|" + $job.CommandLine + "| on node: " + $Node.Name  )
 
-    #$entity = New-Object "Microsoft.WindowsAzure.Storage.Table.DynamicTableEntity" ($node.Pool + "_" + $node.Name), $job.Id
-    #$entity.Properties.Add("Command", $job.Command)
-    #$entity.Properties.Add("CommandLine", $job.CommandLine)
-    #$entity.Properties.Add("File", $job.JobFile)
-    #$temp = $TaskTable.CloudTable.Execute([Microsoft.WindowsAzure.Storage.Table.TableOperation]::Insert($entity))
     Add-AzTableRow -Table $TaskTable.CloudTable `
                    -PartitionKey ($node.Pool + "_" + $node.Name) `
                    -RowKey $job.Id `
-                   -property @{"Command"=$job.Command;"CommandLine"=$jobCommandLine;"File"=$job.JobFile} 
+                   -property @{"Command"=$job.Command;"CommandLine"=$job.CommandLine;"File"=$job.JobFile} 
                    
 }
 
