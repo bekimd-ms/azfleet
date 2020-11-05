@@ -36,11 +36,7 @@ chmod -R 777 /mnt/data
 apt-get install make gcc g++ unzip zlib1g-dev libboost-all-dev libssl-dev libxml2-dev libxml++2.6-dev libxml++2.6-doc uuid-dev libaio-dev cmake -y
 
 #install fio
-cd /home && wget http://brick.kernel.dk/snaps/fio-3.5.tar.bz2
-cd /home && tar -xjvf fio-3.5.tar.bz2
-cd /home && ./fio-3.5/configure
-cd /home/fio-3.5 && make
-cd /home/fio-3.5 && make install
+apt-get install fio
 
 #TODO: Must install unzip first
 #install diskspd

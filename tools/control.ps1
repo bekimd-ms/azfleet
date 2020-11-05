@@ -302,6 +302,7 @@ function ExecutionResultParse( $execution )
     $execution | Add-Member  "WLat99p"  ([math]::Round($json.jobs.write.clat_ns.percentile.'99.000000' / 1000000, 3))
 
     $execution
+
 }
 
 function ListJobs() 

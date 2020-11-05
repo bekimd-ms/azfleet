@@ -59,24 +59,6 @@ md $WorkspacePath
 #enable tls protocols for downloads
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
 
-#Install fio
-$PackageName = $WorkspacePath + "fio-3.9-x64.msi"
-$PackageUrl  = "https://bluestop.org/files/fio/releases/fio-3.9-x64.msi"
-
-Invoke-WebRequest -Uri $PackageUrl -OutFile $PackageName
-$DataStamp = get-date -Format yyyyMMdd
-$fiologFile = '{0}-{1}.log' -f $PackageName, $DataStamp
-$FioMSIArguments = @(
-    "/i"
-    ('"{0}"' -f $PackageName)
-    "/qn"
-    "/norestart"
-    "/L*v"
-    $fiologFile
-)
-Start-Process "msiexec.exe" -ArgumentList $FioMSIArguments -Wait -NoNewWindow
-Remove-Item ($PackageName)
-
 #install diskspd
 $PackageName = $WorkspacePath + "diskspd.zip"
 $PackageUrl  = "https://gallery.technet.microsoft.com/DiskSpd-A-Robust-Storage-6ef84e62/file/199535/2/DiskSpd-2.0.21a.zip"
@@ -89,6 +71,9 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 choco install python -y --version 3.7.7
 #install nano editor
 choco install -y nano
+#install fio
+choco install -y fio
+
 
 #configure python libs
 C:\Python37\Scripts\pip install azure-storage-blob==12.5.0
