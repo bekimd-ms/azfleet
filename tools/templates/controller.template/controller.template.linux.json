@@ -241,6 +241,27 @@
             "dependsOn": [
                 "[concat('Microsoft.Network/networkInterfaces/',variables('vmNicName'))]"
             ]
+		},
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('vmName'),copyIndex(parameters('vmIndex')),'/AzFleetExtension')]",
+            "apiVersion": "2020-06-01",
+            "location": "[variables('location')]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+				"type": "CustomScript",
+				"typeHandlerVersion": "2.0",
+				"autoUpgradeMinorVersion": true,
+				"settings": {
+					"fileUris": [
+						"https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/deploy.controller.linux.sh"
+					],
+					"commandToExecute": "[concat('sudo bash ','deploy.controller.linux.sh ',variables('uniqueStorageAccountName'),' ',listKeys(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')), '2015-06-15').key1,' ',parameters('StorageEndpointSuffix'))]"
+				}
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/',variables('vmName'),copyIndex(parameters('vmIndex')))]"
+            ]
         }
     ]
 }

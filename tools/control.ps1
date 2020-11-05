@@ -100,13 +100,20 @@ function ListPools()
 
 }
 
-function CleanPools( $Params )
+function CleanTables( $Params )
 {
-    Write-Output "Getting all pool data tables"
     Get-AzTableRow -table $NodeTable.CloudTable | Remove-AzTableRow -table $NodeTable.CloudTable 
     Get-AzTableRow -table $JobTable.CloudTable | Remove-AzTableRow -table $JobTable.CloudTable 
     Get-AzTableRow -table $ExecTable.CloudTable | Remove-AzTableRow -table $ExecTable.CloudTable 
     Get-AzTableRow -table $TaskTable.CloudTable | Remove-AzTableRow -table $TaskTable.CloudTable 
+}
+
+function DebugTables()
+{
+    Get-AzTableRow -table $NodeTable.CloudTable  | ft 
+    Get-AzTableRow -table $JobTable.CloudTable   | ft
+    Get-AzTableRow -table $ExecTable.CloudTable  | ft
+    Get-AzTableRow -table $TaskTable.CloudTable  | ft
 }
 
 function StartJob( $Params )
@@ -368,6 +375,33 @@ switch( $object ){
             }
             "disable"{
                 DisablePool $Params
+                break
+            }
+            default{
+                Write-Output "ERROR: unrecognized command"
+            }    
+        }
+    }
+
+    "debug"{
+        switch( $command ){
+            "show"{
+                if( $Params -eq "" ){
+                    DebugTables
+                }
+                else{
+                    DebugTables
+                }
+                break
+            }
+            "clean"{
+                if( $Params -eq "" ){
+                    CleanTables
+                }
+                else{
+                    #not yet implemented cleaning a single pool
+                    CleanTables #$Params
+                }
                 break
             }
             default{

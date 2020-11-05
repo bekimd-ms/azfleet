@@ -7,7 +7,10 @@ import logging, sys
 import yaml
 
 logger = logging.getLogger( "azfleetagent")
-logger.basicConfig(level=logging.INFO, stream=sys.stdout)
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+logger.addHandler(ch)
 
 def WriteConfig( params ):
     config = dict(
@@ -76,25 +79,25 @@ class Node:
         self.Execution = None
 
     def Refresh( self ):
-        logging.debug( "Node state refresh: " + self.State )
+        logger.debug( "Node state refresh: " + self.State )
         if( self.State == NodeState.Ready ):
             self.UpdateState( NodeState.Ready )
         if( self.State == NodeState.Executing ):
             #Check if program is still executing
-            logging.debug( "Checking execution progress" )
+            logger.debug( "Checking execution progress" )
             self.Execution.Poll()
             if( self.Execution.State == ExecState.Executing ):
-                logging.debug( "Execution in progress" )
+                logger.debug( "Execution in progress" )
                 self.UpdateState( NodeState.Executing )
             else:
-                logging.debug( "Execution completed" )
+                logger.debug( "Execution completed" )
                 self.UpdateState( NodeState.Ready )
 
     def GetCommand( self ):
         #get any pending command from queue
         entityPartitionKey = (self.Pool + "_" + self.Name)
         commands = tablesvc.query_entities( Tables.TaskTable, filter = "PartitionKey eq '" + entityPartitionKey + "'", num_results = 10  )    
-        logging.info( "Commands retrieved. Processing..." )
+        logger.info( "Commands retrieved. Processing..." )
         for command in commands:
             temp = tablesvc.delete_entity( Tables.TaskTable, entityPartitionKey, command.RowKey)
         return commands
@@ -102,7 +105,7 @@ class Node:
     def UpdateState( self, newstate ):
         #update the status of this node
         self.State = newstate
-        logging.info( 'STATUS CHANGE: ' + self.State )
+        logger.info( 'STATUS CHANGE: ' + self.State )
         status  = Entity()
         status.PartitionKey = self.Pool
         status.RowKey = self.Name
@@ -115,29 +118,29 @@ class Node:
 
     def ExecuteCommand( self, command ):
         #execute the command 
-        logging.info( "Executing command " + command.CommandLine )
+        logger.info( "Executing command " + command.CommandLine )
         self.Execution = Execution( command )
         self.Execution.Run()
         self.UpdateState(  NodeState.Executing )
 
     def CancelCommand( self ):
-        logging.info( "Canceling command..." )    
+        logger.info( "Canceling command..." )    
         self.Execution.Kill()
         self.Execution = None
         self.UpdateState( NodeState.Ready )
 
     def Pause( self ):
         #do not take any new commands, except !resume  
-        logging.info( "Pausing..." )    
+        logger.info( "Pausing..." )    
         self.UpdateState( NodeState.Paused )
 
     def Resume( self ):
         #resume operations
-        logging.info( "Resuming..." )    
+        logger.info( "Resuming..." )    
         self.UpdateState( NodeState.Ready )
 
     def Reset( self ):
-        logging.info( "Resetting..." )    
+        logger.info( "Resetting..." )    
         if( self.State == NodeState.Executing ):
             self.CancelCommand()
         self.UpdateState( NodeState.Ready )
@@ -151,7 +154,7 @@ class Execution:
         self.Process = None
 
     def UpdateState( self, newstate ):
-        logging.info( "Execution status update: " + newstate )
+        logger.info( "Execution status update: " + newstate )
         self.State = newstate
         execrec  = Entity()
         execrec.PartitionKey = self.Command.RowKey
@@ -163,7 +166,7 @@ class Execution:
 
     def Run( self ):
         filepath = WorkloadPath + self.Command.File
-        logging.info( "Copying blob " + self.Command.File + " to file " + filepath )
+        logger.info( "Copying blob " + self.Command.File + " to file " + filepath )
 
         blobclient = blobsvc.get_blob_client( WorkloadContainer, self.Command.File )
         blobstream = blobclient.download_blob()
@@ -171,22 +174,22 @@ class Execution:
             localfile.write(blobstream.readall())
 
         commandline = self.Command.CommandLine + ' --output "' + OutputPath + self.Output + '" --output-format=json --lat_percentiles=1 "' + filepath + '"'
-        logging.info( "Executing: " + commandline )
+        logger.info( "Executing: " + commandline )
         self.Process = subprocess.Popen( commandline, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.UpdateState( ExecState.Executing )
 
     def Poll( self ):
-        logging.info( "Checking command" )
+        logger.info( "Checking command" )
         p = self.Process.poll()
         if( p == None):
-            logging.info( "Command running")
+            logger.info( "Command running")
             self.UpdateState( ExecState.Executing )
         else:
             if( p == 0 ):
-                logging.info( "Command completed")
+                logger.info( "Command completed")
                 self.UpdateState( ExecState.Completed )
             else:
-                logging.info( "Command exited with error. Exit code " + str(p) )
+                logger.info( "Command exited with error. Exit code " + str(p) )
                 self.UpdateState( ExecState.Error )        
             
             blobclient = blobsvc.get_blob_client( OutputContainer, self.Output )
@@ -198,7 +201,7 @@ class Execution:
 
 
     def Kill( self ):
-        logging.info( "Killing process" )
+        logger.info( "Killing process" )
         self.Process.Kill()
         self.Process = None
         self.UpdateState( ExecState.Canceled )
@@ -249,9 +252,9 @@ def Main():
     while ( True ):
         #   TODO periodically CheckTable() && CheckQueue()
         commands = node.GetCommand()
-        logging.info( "CURRENT STATE: " + node.State )
+        logger.info( "CURRENT STATE: " + node.State )
         for command in commands:
-            logging.info( command.RowKey + ' ' + command.Command + " " + command.CommandLine )
+            logger.info( command.RowKey + ' ' + command.Command + " " + command.CommandLine )
             if( command.Command == "RESET"):
                 node.Reset()
             if( node.State == NodeState.Ready ):
