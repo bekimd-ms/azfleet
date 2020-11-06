@@ -7,7 +7,7 @@ diskscnt=${#disks[*]}
 disksizes=($(lsblk -l -p -o size ${disks[0]}))
 disksize=${disksizes[1]}
 
-if [ "$diskcnt" = "1" ]; then
+if [ "$diskcnt" = "" ]; then
        #single disk: format the disk
        disk=${disks[0]}
        parted --script $disk mklabel gpt mkpart xfspart xfs 0% 100%
@@ -33,24 +33,22 @@ mount -a
 chmod -R 777 /mnt/data
 
 #install libraries 
+apt-get update
 apt-get install make gcc g++ unzip zlib1g-dev libboost-all-dev libssl-dev libxml2-dev libxml++2.6-dev libxml++2.6-doc uuid-dev libaio-dev cmake -y
+apt-get install fio -y
 
-#install fio
-apt-get install fio
-
+#setup home directory
 homedir=/home/azfleet 
-#install azfleet agent
 mkdir $homedir
 chmod -R 777 $homedir
 cd $homedir 
 
-#TODO: Must install unzip first
 #install diskspd
 cd $homedir && wget https://github.com/Microsoft/diskspd-for-linux/archive/master.zip
 cd $homedir && unzip master.zip -d diskspd
 cd $homedir && ./diskspd/diskspd-for-linux-master
 cd $homedir/diskspd/diskspd-for-linux-master && make
-cd $homedir/home/diskspd/diskspd-for-linux-master && make install
+cd $homedir/diskspd/diskspd-for-linux-master && make install
 
 #configure python libs
 apt-get install python3-pip -y 
@@ -58,7 +56,8 @@ pip3 install azure-storage-blob==12.5.0
 pip3 install azure-cosmosdb-table==1.0.6
 pip3 install pyyaml
 
-cd azfleet
+#install azfleet agent
+cd $homedir
 wget https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/azfleetagent.py
 mkdir $homedir/output
 chmod -R 777 ./output
