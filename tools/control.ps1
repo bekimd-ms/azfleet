@@ -291,15 +291,25 @@ function ExecutionResultParse( $execution )
     $execution | Add-Member "UsrCPU" ([math]::Round($json.jobs.usr_cpu ))
     $execution | Add-Member "SysCPU" ([math]::Round($json.jobs.sys_cpu ))
 
-    $execution | Add-Member  "RLatmean"  ([math]::Round($json.jobs.read.clat_ns.mean / 1000000, 3 ))
-    $execution | Add-Member  "RLat50p"  ([math]::Round($json.jobs.read.clat_ns.percentile.'50.000000' / 1000000, 3))
-    $execution | Add-Member  "RLat90p"  ([math]::Round($json.jobs.read.clat_ns.percentile.'90.000000' / 1000000, 3))
-    $execution | Add-Member  "RLat99p"  ([math]::Round($json.jobs.read.clat_ns.percentile.'99.000000' / 1000000, 3))
+    write-host $json.jobs.read.clat_ns.percentile
+    if( $json.jobs.read.clat_ns.percentile -ne $null ){
+        $readlatstat = $json.jobs.read.clat_ns
+        $writelatstat = $json.jobs.write.clat_ns
+    }
+    else {
+        $readlatstat = $json.jobs.read.lat_ns
+        $writelatstat = $json.jobs.write.lat_ns
+    }
 
-    $execution | Add-Member  "WLatmean"  ([math]::Round($json.jobs.write.clat_ns.mean / 1000000, 3 ))
-    $execution | Add-Member  "WLat50p"  ([math]::Round($json.jobs.write.clat_ns.percentile.'50.000000' / 1000000, 3))
-    $execution | Add-Member  "WLat90p"  ([math]::Round($json.jobs.write.clat_ns.percentile.'90.000000' / 1000000, 3))
-    $execution | Add-Member  "WLat99p"  ([math]::Round($json.jobs.write.clat_ns.percentile.'99.000000' / 1000000, 3))
+    $execution | Add-Member  "RLatmean"  ([math]::Round($readlatstat.mean / 1000000, 3 ))
+    $execution | Add-Member  "RLat50p"  ([math]::Round($readlatstat.percentile.'50.000000' / 1000000, 3))
+    $execution | Add-Member  "RLat90p"  ([math]::Round($readlatstat.percentile.'90.000000' / 1000000, 3))
+    $execution | Add-Member  "RLat99p"  ([math]::Round($readlatstat.percentile.'99.000000' / 1000000, 3))
+
+    $execution | Add-Member  "WLatmean"  ([math]::Round($writelatstat.mean / 1000000, 3 ))
+    $execution | Add-Member  "WLat50p"  ([math]::Round($writelatstat.percentile.'50.000000' / 1000000, 3))
+    $execution | Add-Member  "WLat90p"  ([math]::Round($writelatstat.percentile.'90.000000' / 1000000, 3))
+    $execution | Add-Member  "WLat99p"  ([math]::Round($writelatstat.percentile.'99.000000' / 1000000, 3))
 
     $execution
 

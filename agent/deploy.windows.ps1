@@ -74,6 +74,9 @@ choco install -y nano
 #install fio
 choco install -y fio
 
+$chocopath = "C:\Users\All Users\chocolatey\bin;C:\Python37"
+$p = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::Machine);
+[Environment]::SetEnvironmentVariable("PATH", $p + $chocopath, [EnvironmentVariableTarget]::Machine);
 
 #configure python libs
 C:\Python37\Scripts\pip install azure-storage-blob==12.5.0
