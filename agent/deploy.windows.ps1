@@ -110,7 +110,7 @@ $action = New-ScheduledTaskAction -Execute "cmd" -Argument $agentParams -Working
 $trigger = @()
 $trigger += New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1)
 $trigger += New-ScheduledTaskTrigger -AtStartup
-$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable -DontStopOnIdleEnd
+$settings = New-ScheduledTaskSettingsSet -Priority 4 -StartWhenAvailable -RunOnlyIfNetworkAvailable -DontStopOnIdleEnd
 Unregister-ScheduledTask -TaskName "azfleet" -Confirm:0 -ErrorAction Ignore
 Register-ScheduledTask -Action $action -Trigger $trigger -TaskName "azfleet" -Description "azfleet agent" -User "System" -RunLevel Highest -Settings $settings
 

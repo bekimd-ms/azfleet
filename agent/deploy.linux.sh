@@ -37,6 +37,12 @@ apt-get update
 apt-get install make gcc g++ unzip zlib1g-dev libboost-all-dev libssl-dev libxml2-dev libxml++2.6-dev libxml++2.6-doc uuid-dev libaio-dev cmake -y
 apt-get install fio -y
 
+#configure python libs
+apt-get install python3-pip -y 
+pip3 install azure-storage-blob==12.5.0
+pip3 install azure-cosmosdb-table==1.0.6
+pip3 install pyyaml
+
 #setup home directory
 homedir=/home/azfleet 
 mkdir $homedir
@@ -49,12 +55,6 @@ cd $homedir && unzip master.zip -d diskspd
 cd $homedir && ./diskspd/diskspd-for-linux-master
 cd $homedir/diskspd/diskspd-for-linux-master && make
 cd $homedir/diskspd/diskspd-for-linux-master && make install
-
-#configure python libs
-apt-get install python3-pip -y 
-pip3 install azure-storage-blob==12.5.0
-pip3 install azure-cosmosdb-table==1.0.6
-pip3 install pyyaml
 
 #install azfleet agent
 cd $homedir
