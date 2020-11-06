@@ -291,7 +291,6 @@ function ExecutionResultParse( $execution )
     $execution | Add-Member "UsrCPU" ([math]::Round($json.jobs.usr_cpu ))
     $execution | Add-Member "SysCPU" ([math]::Round($json.jobs.sys_cpu ))
 
-    write-host $json.jobs.read.clat_ns.percentile
     if( $json.jobs.read.clat_ns.percentile -ne $null ){
         $readlatstat = $json.jobs.read.clat_ns
         $writelatstat = $json.jobs.write.clat_ns

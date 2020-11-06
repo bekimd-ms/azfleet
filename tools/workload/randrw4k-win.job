@@ -1,11 +1,11 @@
 ; -rand-RW.job for fiotest on windows
 
 [job]
-name=randrw8k-win
+name=randrw4k-win
 rw=randrw
 rwmixread=60
 rwmixwrite=40
-bs=8K
+bs=4K
 direct=1
 numjobs=4
 time_based=1

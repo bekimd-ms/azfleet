@@ -38,13 +38,19 @@ apt-get install make gcc g++ unzip zlib1g-dev libboost-all-dev libssl-dev libxml
 #install fio
 apt-get install fio
 
+homedir=/home/azfleet 
+#install azfleet agent
+mkdir $homedir
+chmod -R 777 $homedir
+cd $homedir 
+
 #TODO: Must install unzip first
 #install diskspd
-cd /home && wget https://github.com/Microsoft/diskspd-for-linux/archive/master.zip
-cd /home && unzip master.zip -d diskspd
-cd /home && ./diskspd/diskspd-for-linux-master
-cd /home/diskspd/diskspd-for-linux-master && make
-cd /home/diskspd/diskspd-for-linux-master && make install
+cd $homedir && wget https://github.com/Microsoft/diskspd-for-linux/archive/master.zip
+cd $homedir && unzip master.zip -d diskspd
+cd $homedir && ./diskspd/diskspd-for-linux-master
+cd $homedir/diskspd/diskspd-for-linux-master && make
+cd $homedir/home/diskspd/diskspd-for-linux-master && make install
 
 #configure python libs
 apt-get install python3-pip -y 
@@ -52,15 +58,11 @@ pip3 install azure-storage-blob==12.5.0
 pip3 install azure-cosmosdb-table==1.0.6
 pip3 install pyyaml
 
-#install azfleet agent
-cd /home/ 
-mkdir azfleet
-chmod -R 777 ./azfleet
 cd azfleet
 wget https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/azfleetagent.py
-mkdir /home/azfleet/output
+mkdir $homedir/output
 chmod -R 777 ./output
-mkdir /home/azfleet/workload
+mkdir $homedir/workload
 chmod -R 777 ./workload
 
 #configure agent
@@ -85,7 +87,7 @@ echo '@reboot cd /home/azfleet && nohup python3 ./azfleetagent.py >console.log 2
 crontab cron.txt
 
 #start agent
-cd /home/azfleet && nohup python3 ./azfleetagent.py >/dev/null 2>agent.err &
+cd $homedir && nohup python3 ./azfleetagent.py >/dev/null 2>agent.err &
 
 
 

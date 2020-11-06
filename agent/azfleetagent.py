@@ -173,7 +173,7 @@ class Execution:
         with open(filepath, "wb") as localfile:
             localfile.write(blobstream.readall())
 
-        commandline = self.Command.CommandLine + ' --output "' + OutputPath + self.Output + '" --output-format=json --lat_percentiles=1 "' + filepath + '"'
+        commandline = self.Command.CommandLine + ' --output "' + OutputPath + self.Output + '" --output-format=json "' + filepath + '"'
         logger.info( "Executing: " + commandline )
         self.Process = subprocess.Popen( commandline, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.UpdateState( ExecState.Executing )

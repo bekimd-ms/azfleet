@@ -1,11 +1,11 @@
-; -rand-RW.job for fiotest on windows
+; -rand-RW.job for fiotest on linux
 
 [job]
-name=randrw8k-win
+name=randrw4k-lin
 rw=randrw
 rwmixread=60
 rwmixwrite=40
-bs=8K
+bs=4K
 direct=1
 numjobs=4
 time_based=1
@@ -13,7 +13,7 @@ runtime=60
 group_reporting=1
 size=128M
 iodepth=4
-ioengine=windowsaio
-directory=X\:\\
-thread=1
+ioengine=libaio
+directory=/mnt/data
+
 
