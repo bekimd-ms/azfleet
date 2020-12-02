@@ -1,0 +1,330 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0",
+	"parameters": {
+		"storageEndpointSuffix": {
+            "defaultValue": "core.windows.net",
+            "type": "String"
+		},
+		"vmPool": {
+            "type": "String",
+            "metadata": {
+                "description": "Pool name."
+            }
+        },
+		"adminUsername": {
+            "type": "String"
+        },
+		"adminPassword": {
+            "type": "String"
+        },
+		"vmIndex": {
+            "defaultValue": 0,
+            "type": "Int",
+            "metadata": {
+                "description": "Start index for new VMs."
+            }
+        },        
+		"vmCount": {
+            "defaultValue": 2,
+            "type": "Int",
+            "metadata": {
+                "description": "Number of VMs to create and run IO simulation."
+            }
+        },
+		"vmOsSku": {
+            "defaultValue": "2019-Datacenter",
+            "allowedValues": [
+                "2016-Datacenter",
+                "2019-Datacenter"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "The Windows Server version for the VM."
+            }
+        },
+		"vmSize": {
+			"type": "string",
+			"defaultValue": "Standard_A3",
+			"metadata": {
+				"description": "VM size supported by Azure Stack."
+			}
+        },
+		"vmDataDiskSizeInGB": {
+			"type": "int",
+			"defaultValue": 4,
+			"metadata": {
+				"description": "VM IO workload target data disk size in GB."
+			}
+		},
+		"vmDataDiskCount": {
+			"type": "int",
+			"defaultValue": 1,
+			"metadata": {
+				"description": "Number of data disks per VM to perform IO on."
+			}
+        }
+	},
+	"variables": {
+        "addressPrefix": "10.0.0.0/16",
+        "location": "[resourceGroup().location]",
+        "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
+        "subnetPrefix": "10.0.0.0/24",
+		"storageSkuName": "Standard_LRS",
+		"storageSkuTier": "Standard",
+        "uniqueStorageAccountName": "[tolower(concat('sa', resourceGroup().name))]",
+        "uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
+        "vmOsType": "Windows",
+        "virtualNetworkName": "[tolower(concat('vn', resourceGroup().name))]",
+        "scaleSetName": "[tolower(concat('ss', resourceGroup().name))]",
+		"loadBalancerName": "[tolower(concat('lb', resourceGroup().name))]",
+		"backendPoolName": "[tolower(concat('lbbep', resourceGroup().name))]",
+		"natPoolName": "[tolower(concat('lbnp', resourceGroup().name))]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
+		"publicIPAddressName": "[tolower(concat('ip', resourceGroup().name))]",
+        "nsgName": "[tolower(concat('ng', resourceGroup().name))]",
+        "dnsPrefix": "[tolower(concat('dns', resourceGroup().name))]",
+        "nicName": "[tolower(concat(parameters('vmPool'), '-nic'))]",
+        "ipConfigName": "[concat(parameters('vmPool'), 'ipconfig')]",
+        "vmDataDiskName": "[parameters('vmPool')]",
+        "diskType": "Premium_LRS",     
+        "natStartPort": 50000,
+        "natEndPort": 50119,
+        "natBackendPort": 22,
+        "frontEndIPConfigID": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations',variables('loadBalancerName'),'loadBalancerFrontEnd')]"
+    },
+	"resources": [
+		{
+			"apiVersion": "2019-06-01",
+			"type": "Microsoft.Storage/storageAccounts",
+			"name": "[tolower(variables('uniqueStorageAccountName'))]",
+			"location": "[variables('location')]",
+			"sku": {
+				"name": "[variables('storageSkuName')]",
+				"tier": "[variables('storageSkuTier')]"
+			}
+		},
+		{
+			"apiVersion": "2020-06-01",
+			"type": "Microsoft.Network/networkSecurityGroups",
+			"name": "[variables('nsgName')]",
+			"location": "[variables('location')]",
+			"properties": {
+				"securityRules": []
+			}
+		},
+		{
+			"apiVersion": "2020-06-01",
+			"type": "Microsoft.Network/virtualNetworks",
+			"name": "[variables('virtualNetworkName')]",
+			"location": "[variables('location')]",
+			"properties": {
+				"addressSpace": {
+					"addressPrefixes": [
+						"[variables('addressPrefix')]"
+					]
+				},
+				"subnets": [
+					{
+						"name": "[variables('subnetName')]",
+						"properties": {
+							"addressPrefix": "[variables('subnetPrefix')]",
+							"networkSecurityGroup": {
+								"id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
+							}
+						}
+					}
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
+            ]
+
+		},
+		{
+			"type": "Microsoft.Network/publicIPAddresses",
+			"name": "[variables('publicIPAddressName')]",
+			"apiVersion": "2020-06-01",
+			"location": "[variables('location')]",
+			"properties": {
+				"publicIPAllocationMethod": "Static",
+				"dnsSettings": {
+					"domainNameLabel": "[variables('dnsPrefix')]"
+				}
+			},
+			"sku": {
+                "name": "Standard"
+            },
+			"dependsOn": [
+				"[variables('vnetID')]"
+			]
+		},
+		{
+            "type": "Microsoft.Network/loadBalancers",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('loadBalancerName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "LoadBalancerFrontEnd",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('backendPoolName')]"
+                    }
+                ],
+                "outboundRules": [
+                    {
+                      "name": "LBOutboundRule",
+                      "properties": {
+                        "allocatedOutboundPorts": 0,
+                        "backendAddressPool": {
+                          "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('loadBalancerName'), variables('backendPoolName'))]"
+                        },
+                        "enableTcpReset": true,
+                        "frontendIPConfigurations": [
+                          {
+                            "id": "[variables('frontEndIPConfigID')]"
+                          }
+                        ],
+                        "idleTimeoutInMinutes": 30,
+                        "protocol": "All"
+                      }
+                    }
+                ],
+				"inboundNatPools": [
+                    {
+                        "name": "[variables('natPoolName')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('frontEndIPConfigID')]"
+                            },
+                            "protocol": "Tcp",
+                            "frontendPortRangeStart": "[variables('natStartPort')]",
+                            "frontendPortRangeEnd": "[variables('natEndPort')]",
+                            "backendPort": "[variables('natBackendPort')]"
+                        }
+                    }
+                ]
+            }
+		},
+		{
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('scaleSetName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "[parameters('vmSize')]",
+                "tier": "Standard",
+                "capacity": "[parameters('vmCount')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+            ],
+            "properties": {
+                "overprovision": false,
+                "upgradePolicy": {
+                    "mode": "Automatic"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "osDisk": {
+                            "caching": "ReadWrite",
+                            "createOption": "FromImage",
+                            "managedDisk": {
+                                "storageAccountType": "Premium_LRS"
+                            }
+                        },
+                        "imageReference":{
+                            "id": "[parameters('imageId')]"
+						},
+						"copy": [
+							{
+								"name": "dataDisks",
+								"count": "[parameters('vmDataDiskCount')]",
+								"input": {
+									"diskSizeGB": "[parameters('vmDataDiskSizeInGB')]",
+									"lun": "[copyIndex('dataDisks')]",
+									"createOption": "Empty",
+									"caching": "None", 
+									"managedDisk": {
+										"storageAccountType": "[variables('diskType')]"
+									}                                    
+								}
+							}
+						]  
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('scaleSetName')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]"
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "[variables('nicName')]",
+                                "properties": {
+                                    "primary": true,
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "[variables('ipConfigName')]",
+                                            "properties": {
+                                                "primary": true,
+                                                "subnet": {
+                                                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
+                                                },
+                                                "loadBalancerBackendAddressPools": [
+                                                    {
+                                                        "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', variables('loadBalancerName'), variables('backendPoolName'))]"
+                                                    }
+                                                ],
+                                                "loadBalancerInboundNatPools": [
+                                                    {
+                                                        "id": "[resourceId('Microsoft.Network/loadBalancers/inboundNatPools', variables('loadBalancerName'),  variables('natPoolName'))]"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "extensionProfile": {
+                        "extensions": [
+                          {
+                            "name": "wapextension",
+                            "properties": {
+                                "publisher": "Microsoft.Compute",
+                                "type": "CustomScriptExtension",
+                                "typeHandlerVersion": "1.9",
+                                "autoUpgradeMinorVersion": true,
+                                "settings": {
+                                    "fileUris": [
+                                        "https://raw.githubusercontent.com/bekimd-ms/azfleet/master/agent/deploy.windows.ps1"
+                                    ],
+                                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ','deploy.windows.ps1 ',variables('uniqueStorageAccountName'),' ',listKeys(concat('Microsoft.Storage/storageAccounts/', variables('uniqueStorageAccountName')), '2015-06-15').key1,' ',parameters('StorageEndpointSuffix'),' ',parameters('vmPool'),' ',variables('vmOSType'),' ',parameters('vmSize'))]"
+                                }                             }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

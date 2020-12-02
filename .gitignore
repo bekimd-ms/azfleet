@@ -6,3 +6,4 @@
 *.exe
 *.vs
 /tools/output/*
+tmp
