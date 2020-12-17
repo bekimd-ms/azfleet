@@ -1,0 +1,15 @@
+[job]
+name=#JOBNAME
+rw=randrw
+rwmixread=60
+rwmixwrite=40
+bs=#BLOCKSIZEK
+direct=1
+numjobs=#JOBS
+time_based=1
+runtime=300
+group_reporting=1
+size=4G
+iodepth=#IODEPTH
+ioengine=libaio
+directory=/data

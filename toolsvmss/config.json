@@ -1,0 +1,4 @@
+{
+    resourcegroup: "laxfleet",
+    storageaccount: "grplaxfleetsa"
+}

@@ -1,0 +1,73 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0",
+	"parameters": {
+		"storageEndpointSuffix": {
+            "defaultValue": "core.windows.net",
+            "type": "String"
+		}
+	},
+	"variables": {
+        "addressPrefix": "10.0.0.0/16",
+        "location": "[resourceGroup().location]",
+        "uniqueStorageAccountName": "[tolower(concat('grp', resourceGroup().name, 'sa'))]",
+        "uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
+        "nsgName": "[tolower(concat('grp', resourceGroup().name, '-nsg'))]",
+		"virtualNetworkName": "[tolower(concat('grp', resourceGroup().name, '-vn'))]",
+		"subnetName": "[tolower(concat('grp', resourceGroup().name, '-sn'))]",
+        "subnetPrefix": "10.0.0.0/24",
+		"storageSkuName": "Standard_LRS",
+		"storageSkuTier": "Standard",
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]"
+    },
+	"resources": [
+		{
+			"apiVersion": "2019-06-01",
+			"type": "Microsoft.Storage/storageAccounts",
+			"name": "[tolower(variables('uniqueStorageAccountName'))]",
+			"location": "[variables('location')]",
+			"sku": {
+				"name": "[variables('storageSkuName')]",
+				"tier": "[variables('storageSkuTier')]"
+			}
+		},
+		{
+			"apiVersion": "2020-06-01",
+			"type": "Microsoft.Network/networkSecurityGroups",
+			"name": "[variables('nsgName')]",
+			"location": "[variables('location')]",
+			"properties": {
+				"securityRules": []
+			}
+		},
+		{
+			"apiVersion": "2020-06-01",
+			"type": "Microsoft.Network/virtualNetworks",
+			"name": "[variables('virtualNetworkName')]",
+			"location": "[variables('location')]",
+			"properties": {
+				"addressSpace": {
+					"addressPrefixes": [
+						"[variables('addressPrefix')]"
+					]
+				},
+				"subnets": [
+					{
+						"name": "[variables('subnetName')]",
+						"properties": {
+							"addressPrefix": "[variables('subnetPrefix')]",
+							"networkSecurityGroup": {
+								"id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
+							}
+						}
+					}
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
+            ]
+
+		}
+    ]
+}

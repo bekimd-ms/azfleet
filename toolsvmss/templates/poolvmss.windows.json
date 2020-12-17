@@ -68,80 +68,33 @@
 	"variables": {
         "addressPrefix": "10.0.0.0/16",
         "location": "[resourceGroup().location]",
-        "subnetName": "[tolower(concat('sn', resourceGroup().name))]",
-        "subnetPrefix": "10.0.0.0/24",
-		"storageSkuName": "Standard_LRS",
-		"storageSkuTier": "Standard",
-        "uniqueStorageAccountName": "[tolower(concat('sa', resourceGroup().name))]",
+        "uniqueStorageAccountName": "[tolower(concat('grp', resourceGroup().name, 'sa'))]",
         "uniqueStorageAccountContainerName": "[tolower(concat('sc', resourceGroup().name))]",
-        "vmOsType": "Windows",
-        "virtualNetworkName": "[tolower(concat('vn', resourceGroup().name))]",
-        "scaleSetName": "[tolower(concat('ss', resourceGroup().name))]",
-		"loadBalancerName": "[tolower(concat('lb', resourceGroup().name))]",
-		"backendPoolName": "[tolower(concat('lbbep', resourceGroup().name))]",
-		"natPoolName": "[tolower(concat('lbnp', resourceGroup().name))]",
+        "nsgName": "[tolower(concat('grp', resourceGroup().name, '-nsg'))]",
+		"virtualNetworkName": "[tolower(concat('grp', resourceGroup().name, '-vn'))]",
+		"subnetName": "[tolower(concat('grp', resourceGroup().name, '-sn'))]",
+
+        "subnetPrefix": "10.0.0.0/24",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-		"publicIPAddressName": "[tolower(concat('ip', resourceGroup().name))]",
-        "nsgName": "[tolower(concat('ng', resourceGroup().name))]",
-        "dnsPrefix": "[tolower(concat('dns', resourceGroup().name))]",
+
+        "vmOsType": "Windows",
+        "scaleSetName": "[tolower(concat(parameters('vmPool'),'ss'))]",
+		"loadBalancerName": "[tolower(concat(parameters('vmPool'),'lb'))]",
+		"backendPoolName": "[tolower(concat(parameters('vmPool'),'lbbep'))]",
+		"natPoolName": "[tolower(concat(parameters('vmPool'),'-lbnp'))]",
+		"publicIPAddressName": "[tolower(concat(parameters('vmPool'),'ip'))]",
+        "dnsPrefix": "[tolower(concat(parameters('vmPool'),'-dns'))]",
         "nicName": "[tolower(concat(parameters('vmPool'), '-nic'))]",
-        "ipConfigName": "[concat(parameters('vmPool'), 'ipconfig')]",
-        "vmDataDiskName": "[parameters('vmPool')]",
-        "diskType": "Premium_LRS",     
+        "ipConfigName": "[tolower(concat(parameters('vmPool'), '-ipc'))]",
+        "vmDataDiskName": "[tolower(parameters('vmPool'))]",
+        "diskType": "Premium_LRS",    
         "natStartPort": 50000,
         "natEndPort": 50119,
         "natBackendPort": 22,
         "frontEndIPConfigID": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations',variables('loadBalancerName'),'loadBalancerFrontEnd')]"
     },
 	"resources": [
-		{
-			"apiVersion": "2019-06-01",
-			"type": "Microsoft.Storage/storageAccounts",
-			"name": "[tolower(variables('uniqueStorageAccountName'))]",
-			"location": "[variables('location')]",
-			"sku": {
-				"name": "[variables('storageSkuName')]",
-				"tier": "[variables('storageSkuTier')]"
-			}
-		},
-		{
-			"apiVersion": "2020-06-01",
-			"type": "Microsoft.Network/networkSecurityGroups",
-			"name": "[variables('nsgName')]",
-			"location": "[variables('location')]",
-			"properties": {
-				"securityRules": []
-			}
-		},
-		{
-			"apiVersion": "2020-06-01",
-			"type": "Microsoft.Network/virtualNetworks",
-			"name": "[variables('virtualNetworkName')]",
-			"location": "[variables('location')]",
-			"properties": {
-				"addressSpace": {
-					"addressPrefixes": [
-						"[variables('addressPrefix')]"
-					]
-				},
-				"subnets": [
-					{
-						"name": "[variables('subnetName')]",
-						"properties": {
-							"addressPrefix": "[variables('subnetPrefix')]",
-							"networkSecurityGroup": {
-								"id": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
-							}
-						}
-					}
-                ]
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]"
-            ]
-
-		},
 		{
 			"type": "Microsoft.Network/publicIPAddresses",
 			"name": "[variables('publicIPAddressName')]",
@@ -155,10 +108,7 @@
 			},
 			"sku": {
                 "name": "Standard"
-            },
-			"dependsOn": [
-				"[variables('vnetID')]"
-			]
+            }
 		},
 		{
             "type": "Microsoft.Network/loadBalancers",
@@ -233,8 +183,7 @@
                 "capacity": "[parameters('vmCount')]"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]"
             ],
             "properties": {
                 "overprovision": false,
@@ -251,7 +200,10 @@
                             }
                         },
                         "imageReference":{
-                            "id": "[parameters('imageId')]"
+                            "publisher": "MicrosoftWindowsServer",
+                            "offer": "WindowsServer",
+                            "sku": "2016-Datacenter",
+                            "version": "14393.4048.2011170655"
 						},
 						"copy": [
 							{
