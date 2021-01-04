@@ -2,47 +2,45 @@ Param(
     [string] $vmPool
 )
 
-$configfile = "config.json"
+$configfile = $env:AZFLEET_CONFIG
 $config = get-content $configfile | ConvertFrom-Json
 $rg = $config.resourcegroup
 
 if( $vmPool )
 {
-    $vms = get-AzVM -ResourceGroupName $rg -Status | where {$_.Tags.pool -eq $vmPool} 
+    $vmss_list = Get-AzVMSS -ResourceGroupName  $rg -VMScaleSetName $vmPool
 }
-else {
-    $vms = get-AzVM -ResourceGroupName $rg -Status | where {$_.Tags.pool -ne $Null} 
+else 
+{
+    $vmss_list = Get-AzVMSS -ResourceGroupName  $rg
 }
 
-$controllerIP = Get-AzPublicIpAddress -ResourceGroupName $rg -Name "controller-ip"
-Write-Output ""
-Write-Output "Controller IP " $controllerIP.IpAddress
-Write-Output ""
 Write-Output "Retrieving VM data..."
 
 $vmlist = @()
-foreach( $vm in $vms )
+foreach( $vmss in $vmss_list)
 {
-    $nif = (Get-AzResource -ResourceId $vm.NetworkProfile.NetworkInterfaces[0].Id | Get-AzNetworkInterface)
-    if( $vm.OSProfile.LinuxConfiguration)
+    $vm_list = Get-AzVMSSVM -ResourceGroupName $rg -VMScaleSetName $vmss.Name -InstanceView
+    foreach( $vm in $vm_list )
     {
-        $os = "Linux"
+        if( $vm.OSProfile.LinuxConfiguration)
+        {
+            $os = "Linux"
+        }
+        else
+        {
+            $os = "Windows"
+        }
+        $vm = [PSCustomObject] @{
+            Pool = $vmss.Name
+            Name = $vm.Name
+            PowerState = ($vm.InstanceView.Statuses | where Code -like "PowerState*").DisplayStatus
+            ProvisioningState = $vm.ProvisioningState
+            OS = $os
+            Size = $vmss.Sku.Name
+        }
+        $vmlist += @($vm)
     }
-    else
-    {
-        $os = "Windows"
-    }
-    $vm = [PSCustomObject]@{
-        Pool = $vm.Tags.pool
-        Name = $vm.Name
-        StatusCode = $vm.StatusCode
-        ProvisioningState = $vm.ProvisioningState
-        PowerState = $vm.PowerState
-        PrivateIP = $nif.IpConfigurations[0].PrivateIpAddress
-        OS = $os
-        Size = $vm.HardwareProfile.VmSize
-    }
-    $vmlist += @($vm)
 }
 
-$vmlist | ft
+$vmlist | ft -GroupBy Pool

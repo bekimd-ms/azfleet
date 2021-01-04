@@ -4,7 +4,7 @@ Param(
     [string] $Params=""
 )
 
-$configfile = "config.json"
+$configfile = $env:AZFLEET_CONFIG
 $config = get-content $configfile | ConvertFrom-Json
 
 $rgname = $config.resourcegroup
@@ -288,8 +288,8 @@ function ExecutionResultParse( $execution )
     $execution | Add-Member "WMbsmean" ([math]::Round($json.jobs.write.bw / 1000 ))
     $execution | Add-Member "WMbsstd" ([math]::Round($json.jobs.read.bw_dev / 1000, 2 ))
     
-    $execution | Add-Member "UsrCPU" ([math]::Round($json.jobs.usr_cpu ))
-    $execution | Add-Member "SysCPU" ([math]::Round($json.jobs.sys_cpu ))
+    $execution | Add-Member "UsrCPU" ([math]::Round($json.jobs.usr_cpu,2 ))
+    $execution | Add-Member "SysCPU" ([math]::Round($json.jobs.sys_cpu,2 ))
 
     if( $json.jobs.read.clat_ns.percentile -ne $null ){
         $readlatstat = $json.jobs.read.clat_ns

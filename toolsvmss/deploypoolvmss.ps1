@@ -11,7 +11,7 @@ Param(
     [string] $ImageId = ""
 )
 
-$configfile = "config.json"
+$configfile = $env:AZFLEET_CONFIG
 $config = get-content $configfile | ConvertFrom-Json
 $rg = $config.resourcegroup
 
