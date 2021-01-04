@@ -6,6 +6,8 @@ $configfile = $env:AZFLEET_CONFIG
 $config = get-content $configfile | ConvertFrom-Json
 $rg = $config.resourcegroup
 
+Write-Host "Deployment: " $rg
+Write-Host ""
 if( $vmPool )
 {
     $vmss_list = Get-AzVMSS -ResourceGroupName  $rg -VMScaleSetName $vmPool
@@ -38,6 +40,8 @@ foreach( $vmss in $vmss_list)
             ProvisioningState = $vm.ProvisioningState
             OS = $os
             Size = $vmss.Sku.Name
+            DiskSize = $vm.StorageProfile.DataDisks[0].DiskSizeGB
+            DiskCache = $vm.StorageProfile.DataDisks[0].Caching
         }
         $vmlist += @($vm)
     }
