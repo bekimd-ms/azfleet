@@ -1,8 +1,6 @@
 Param(
     [string] $vmPool,
-    [int] $vmCount,
-    [string] $vmAdminUserName,
-    [string] $vmAdminPassword
+    [int] $vmCount
 )
 
 $configfile = $env:AZFLEET_CONFIG

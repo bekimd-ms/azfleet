@@ -20,7 +20,7 @@ From github download all the files from the tools directory in this repository. 
     [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
     Invoke-WebRequest -Uri https://github.com/bekimd-ms/azfleet/archive/master.zip -OutFile azfleet.zip
     Expand-Archive -Path .\azfleet.zip  -DestinationPath .\azfleet
-    Copy-Item -Path .\azfleet\azfleet-master\toolsvmss\* .\azfleet -Recurse -Force
+    Copy-Item -Path .\azfleet\azfleet-master\tools\* .\azfleet -Recurse -Force
     Remove-Item -Recurse -Path .\azfleet\azfleet-master\
     Remove-Item .\azfleet.zip
 
@@ -33,35 +33,20 @@ Open a PowerShell console and login into your Azure Stack environment as describ
 Set the location, username and password variables<br>
 ```powershell
 $location = [your Azure Stack region name]
-$groupname = [name of the resource gruop that will contain all the resources]
 $username = [name of the admin user for the VMs]
 $password = [password of the admin user for the VMs]
 ```
 Create a resource group and deploy the controller VM. The template will deploy a vnet that all VMs will share.<br>
 ```powershell
-.\deploygroup.ps1 -GroupName $groupname -Location $location 
-```
-After you deploy the group create a configuration file that contains the name of the group and the name of storage account used for test data.
-The name of the storage account is "grp" + [name of the group] + "sa"
-Here is an example of a config file: 
-```json
-{
-    resourcegroup: "azfleet",
-    storageaccount: "grpazfleetsa"
-}
-```
-Add the following environmental variable with the name of your config file: 
-
-```powershell
-$env:AZFLEET_CONFIG="azfleet.conf"
+New-AzResourceGroup -Name azfleet -Location $location 
+.\deploycontroller.ps1 -ResourceGroupName azfleet -UserName $username -Password $password
 ```
 
 Create two pools of 2 VMs. One pool contains Linux VMs and one pool contains Windows VMs.<br>
 ```powershell
-.\deploypool.ps1 -vmPool linpool1 -vmCount 2 -vmOS linux   -vmSize Standard_F2s_v2 -vmDataDisks 1 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
-.\deploypool.ps1 -vmPool winpool1 -vmCount 2 -vmOS windows -vmSize Standard_F2s_v2 -vmDataDisks 1 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+.\deploypool.ps1 -vmPool lin1 -vmCount 2 -vmOS linux   -vmSize Standard_F2s_v2 -vmDataDisks 1 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
+.\deploypool.ps1 -vmPool win1 -vmCount 2 -vmOS windows -vmSize Standard_F2s_v2 -vmDataDisks 1 -vmDataDiskGB 128 -vmAdminUserName $username -vmAdminPassword $password
 ```
-Use the "-site" parameter if you want to deploy to a EdgeZone site.  
 
 After the template deployments complete check that the VMs are ready to execute jobs.<br>
 
@@ -145,15 +130,26 @@ win1_win1-vm1 COMPLETED      1939      124   78.961  52.167 202.375 387.973     
 
 ## Tools reference
 ### Controller VM  
-Run the deploygroup.ps1 script to create the resource group, deploy a virtual network, and other shared objects for all the VMs that you will use for workload test. 
+Run the deploycontroller.ps1 script to deploy the virtual network, controller and other shared objects for all the VMs that you will use for workload test. 
 ```powershell
-.\deploygroup.ps1 -GroupName azfleet -Location $location
+.\deploycontroller.ps1 -ResourceGroupName azfleet -UserName $username -Password $password
+```
 
-You only need to run this once for a new resource group.
+You only need to run this once for a new resource group. The controller doesn't need to run in order to execute workload tests.
+It is only used if you need to access the individual test VMs because they are only provisioned with private IP addresses.
+
+### Configuration
+Save the resource group and the name of the storage account used for test execution. The storage account is created by the controller deployment tool. 
+The format for the config.json file is: 
+```json
+{
+    resourcegroup: "azfleet",
+    storageaccount: "saazfleet"
+}
+```
 
 ### Pools
-Pools are sets of VMs with identical configuration. Each pool is created as VM scale set with a load balancer.  
-All the VMs in a pool have the same OS, size, number of data disks and sizes of data disks.
+Pools are sets of VMs with identical configuration. All the VMs in a pool have the same OS, size, number of data disks and sizes of data disks.
 You can increase or decrease the size of the pool. You can stop and restart all the VMs in the pool.  
 When executing a workload job you target a pool. All the VMs in the pool will execute the same job with the same parameters. 
 
@@ -161,13 +157,13 @@ When executing a workload job you target a pool. All the VMs in the pool will ex
 To deploy a new pool run the deploypool.ps1 script. 
 ```powershell
 .\deploypool.ps1 -vmPool pool1
-                 -vmCount 2 
-                 -vmOS linux 
-                 -vmSize Standard_F2s_v2 
-                 -vmDataDisks 4 
-                 -vmDataDiskGB 128 
-                 -vmAdminUserName $username 
-                 -vmAdminPassword $password
+                    -vmCount 2 
+                    -vmOS linux 
+                    -vmSize Standard_F2s_v2 
+                    -vmDataDisks 4 
+                    -vmDataDiskGB 128 
+                    -vmAdminUserName $username 
+                    -vmAdminPassword $password
 ```
 
 #### Get pool info 
@@ -189,13 +185,18 @@ To start all the VMs in a pool run the startpool.ps1 script.
 
 #### Scale a pool 
 You can scale the pool with the scalepool.ps1 script.<br>
-To set the size of the pool to 5 VMs: 
+To increase the size of the pool: 
 ```powershell
-.\scalepool.ps1 -vmPool pool1 -vmCount 5 
+.\scalepool.ps1 -vmPool pool1 -vmDiff +5 -vmAdminUserName $username -vmAdminPassword $password
+```
+
+To decrease the size of the pool 
+```powershell
+.\scalepool.ps1 -vmPool pool1 -vmDiff -5 -vmAdminUserName $username -vmAdminPassword $password
 ```
 
 #### Remove a pool 
-To remove all the VMs in the pool and the associated load balancer run the removepool.ps1 script. 
+To remove all the VMs in the pool run the removepool.ps1 script. 
 ```powershell
 .\removepool.ps1 -vmPool pool1 
 ```
