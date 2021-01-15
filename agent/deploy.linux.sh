@@ -14,7 +14,8 @@ if [ "$diskcnt" = "" ]; then
        parted --script $disk print
        diskpart="$disk"1
        mkfs.xfs $diskpart
-       echo -e "$diskpart""\t/mnt/data\txfs\tdefaults,nofail\t1\t2" >> /etc/fstab
+       diskuuid=$(blkid | grep $diskpart | grep -oP '(?<= UUID=").*(?=" TYPE)')
+       echo -e "UUID=$diskuuid""\t/mnt/data\txfs\tdefaults,nofail\t1\t2" >> /etc/fstab
 else
        #multiple disks: create one volume striped over all data disks
        for disk in ${disks[*]}
